@@ -1,0 +1,18 @@
+<h1>Upload Audio</h1>
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    <label for="audio_file">Single Audio File:</label>
+    <input type="file" name="audio_file" id="audio_file" class="file-input">
+    <br>
+    <label for="input_folder">Choose Folder for Batch Processing:</label>
+    <input type="file" name="input_folder" id="input_folder" webkitdirectory multiple>
+    <br><br>
+    <button type="submit">Upload</button>
+</form>
+
+<script>
+    document.getElementById("audio_file").addEventListener("change", function(event) {
+        const fileName = event.target.files[0]?.name || "No file selected";
+        alert(`Selected file: ${fileName}`);  // Temporary way to display full file name
+    });
+</script>

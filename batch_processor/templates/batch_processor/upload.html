@@ -1,18 +1,208 @@
-<h1>Upload Audio</h1>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <label for="audio_file">Single Audio File:</label>
-    <input type="file" name="audio_file" id="audio_file" class="file-input">
-    <br>
-    <label for="input_folder">Choose Folder for Batch Processing:</label>
-    <input type="file" name="input_folder" id="input_folder" webkitdirectory multiple>
-    <br><br>
-    <button type="submit">Upload</button>
-</form>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Batchalign Audio Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .upload-container {
+            border: 2px dashed #ccc;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        .file-input {
+            margin: 10px 0;
+        }
+        .submit-btn {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        .submit-btn:hover {
+            background-color: #45a049;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            display: none;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        .transcript-container {
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        .transcript-container .speaker {
+            color: #2c5282;
+            font-weight: bold;
+        }
+        .notification {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        .notification.info {
+            background-color: #e3f2fd;
+            color: #1565c0;
+            border: 1px solid #90caf9;
+        }
+        
+        .notification.success {
+            background-color: #e8f5e9;
+            color: #2e7d32;
+            border: 1px solid #a5d6a7;
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateY(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+        
+        .transcript-container {
+            margin-top: 20px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            background-color: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            max-height: 500px;
+            overflow-y: auto;
+            line-height: 1.5;
+        }
+        
+        .transcript-container .speaker {
+            color: #2c5282;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Batchalign Audio Processing</h1>
+    
+    <div class="upload-container">
+        <h2>Upload Audio Files</h2>
+        <form method="post" enctype="multipart/form-data" id="uploadForm">
+            {% csrf_token %}
+            
+            <div>
+                <label for="audio_file">Single Audio File:</label><br>
+                <input type="file" name="audio_file" id="audio_file" class="file-input" accept="audio/*">
+            </div>
+            
+            <div>
+                <label for="input_folder">Or Select Multiple Files for Batch Processing:</label><br>
+                <input type="file" name="input_folder" id="input_folder" multiple class="file-input" accept="audio/*">
+            </div>
+            
+            <button type="submit" class="submit-btn">Upload and Process</button>
+        </form>
+    </div>
 
-<script>
-    document.getElementById("audio_file").addEventListener("change", function(event) {
-        const fileName = event.target.files[0]?.name || "No file selected";
-        alert(`Selected file: ${fileName}`);  // Temporary way to display full file name
-    });
-</script>
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('uploadForm').onsubmit = function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const resultDiv = document.getElementById('result');
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = `
+                <div class="notification info">
+                    <span>Processing... Please wait.</span>
+                </div>
+            `;
+            
+            fetch(this.action || window.location.href, {
+                method: 'POST',
+                body: formData,
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Format the transcript with proper line breaks and speaker highlighting
+                    const formattedTranscript = data.transcript
+                        .replace(/\*[A-Z]+:/g, match => `<span class="speaker">${match}</span>`);
+                    
+                    let notificationHtml = '';
+                    if (data.message) {
+                        notificationHtml = `
+                            <div class="notification info">
+                                <span>📋 ${data.message}</span>
+                            </div>
+                        `;
+                    }
+                    
+                    resultDiv.innerHTML = `
+                        ${notificationHtml}
+                        <div class="success">
+                            <h3>Processing Completed Successfully!</h3>
+                            <div class="transcript-container">${formattedTranscript}</div>
+                        </div>`;
+                } else if (data.status === 'batch_completed') {
+                    const results = data.results.map(result => {
+                        let statusIcon = result.status === 'success' ? '✅' : '❌';
+                        let statusMessage = result.message ? ` (${result.message})` : '';
+                        return `<li class="${result.status}">${statusIcon} ${result.file}: ${result.status}${statusMessage}</li>`;
+                    }).join('');
+                    
+                    resultDiv.innerHTML = `
+                        <div>
+                            <h3>Batch Processing Results:</h3>
+                            <ul>${results}</ul>
+                        </div>`;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="notification error">
+                            <span>❌ ${data.message || 'An error occurred during processing.'}</span>
+                        </div>`;
+                }
+            })
+            .catch(error => {
+                resultDiv.innerHTML = `
+                    <div class="notification error">
+                        <span>❌ An error occurred while uploading or processing the file.</span>
+                    </div>`;
+            });
+        };
+
+        // Prevent both upload inputs from being used simultaneously
+        document.getElementById('audio_file').onchange = function() {
+            document.getElementById('input_folder').value = '';
+        };
+        document.getElementById('input_folder').onchange = function() {
+            document.getElementById('audio_file').value = '';
+        };
+    </script>
+</body>
+</html>

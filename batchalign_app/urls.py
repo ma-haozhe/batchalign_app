@@ -16,8 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('upload/', include('batch_processor.urls')),  # Include app-specific URLs
-]
+    path('', include('batch_processor.urls')),  # Changed from 'upload/' to '' to make home page accessible at root
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

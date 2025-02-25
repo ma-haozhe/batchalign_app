@@ -1,0 +1,4 @@
+*.mp3
+input/
+__pycache__/
+.DS_Store

@@ -89,8 +89,37 @@ def update_speaker_mapping(request, transcript_id):
 
 def process_audio(audio_file_path, lang="eng"):
     try:
-        # Initialize the Rev.ai ASR engine
-        asr_engine = ba.RevEngine(lang=lang)
+        # Load API keys from environment or .env file
+        import os
+        from pathlib import Path
+        
+        # Create .env file path
+        env_path = Path(settings.BASE_DIR) / '.env'
+        
+        # First check environment variables
+        rev_api_key = os.environ.get('REV_API_KEY', '')
+        hf_token = os.environ.get('HF_TOKEN', '')
+        
+        # Then check .env file if it exists
+        if env_path.exists():
+            with open(env_path, 'r') as f:
+                for line in f:
+                    if line.strip().startswith('REV_API_KEY='):
+                        rev_api_key = line.strip().split('=', 1)[1].strip('"\'')
+                    elif line.strip().startswith('HF_TOKEN='):
+                        hf_token = line.strip().split('=', 1)[1].strip('"\'')
+        
+        if not rev_api_key:
+            logger.error("Rev.ai API key is not set. Please set it in the settings page.")
+            return None, None, None, None
+            
+        # Temporarily set environment variables for this process
+        os.environ['REV_API_KEY'] = rev_api_key
+        if hf_token:
+            os.environ['HF_TOKEN'] = hf_token
+                
+        # Initialize the Rev.ai ASR engine with explicit API key parameter
+        asr_engine = ba.RevEngine(key=rev_api_key, lang=lang)
         
         # Create a Batchalign pipeline
         nlp = ba.BatchalignPipeline(asr_engine)
@@ -526,3 +555,220 @@ def clear_cache(request):
         "status": "error",
         "message": "Invalid request method"
     })
+
+def transcript_list(request):
+    """View to list all processed audio files and their transcripts"""
+    audio_files = AudioFile.objects.all().order_by('-uploaded_at')
+    return render(request, 'batch_processor/list_files.html', {'audio_files': audio_files})
+
+def view_transcript(request, transcript_id):
+    """View to display a transcript with audio player"""
+    try:
+        transcript = Transcript.objects.get(id=transcript_id)
+        audio_file = transcript.audio
+        
+        # Get speaker mappings
+        speaker_mappings = {sm.original_id: sm.chat_role for sm in transcript.speaker_mapping.all()}
+        
+        # Get all available speakers
+        speakers = []
+        if transcript.diarization_data:
+            speakers = list(set(seg['speaker'] for seg in transcript.diarization_data))
+        
+        # Get audio URL - Fix the audio URL path
+        audio_url = None
+        if audio_file and audio_file.audio_file:
+            audio_url = audio_file.audio_file.url
+            logger.debug(f"Audio URL for transcript {transcript_id}: {audio_url}")
+        
+        # Prepare transcript segments JSON
+        transcript_segments = []
+        if transcript.diarization_data:
+            for segment in transcript.diarization_data:
+                transcript_segments.append({
+                    'start': segment.get('start', 0),
+                    'end': segment.get('end', 0),
+                    'speaker': segment.get('speaker', ''),
+                    'text': segment.get('text', '')
+                })
+        transcript_segments_json = json.dumps(transcript_segments)
+        
+        # Prepare segments JSON (for fallback)
+        segments = []
+        if hasattr(transcript, 'get_segments'):
+            segments = transcript.get_segments()
+        segments_json = json.dumps(segments)
+        
+        # Debug information
+        logger.debug(f"Transcript {transcript_id} content length: {len(transcript.chat_content) if transcript.chat_content else 0}")
+        
+        context = {
+            'transcript': transcript,
+            'audio_file': audio_file,
+            'speaker_mappings': speaker_mappings,
+            'speakers': speakers,
+            'audio_url': audio_url,
+            'transcript_segments_json': transcript_segments_json,
+            'segments_json': segments_json,
+        }
+        
+        return render(request, 'batch_processor/transcript_player.html', context)
+    except Transcript.DoesNotExist:
+        return redirect('transcript_list')
+
+def settings_view(request):
+    """View to display and update API settings"""
+    # Check if API keys are set, either in environment or settings file
+    import os
+    from pathlib import Path
+    
+    # Create .env file path
+    env_path = Path(settings.BASE_DIR) / '.env'
+    
+    # First check environment variables
+    hf_token = os.environ.get('HF_TOKEN', '')
+    rev_api_key = os.environ.get('REV_API_KEY', '')
+    
+    # Then check .env file if it exists
+    if env_path.exists():
+        with open(env_path, 'r') as f:
+            for line in f:
+                if line.strip().startswith('HF_TOKEN='):
+                    hf_token = line.strip().split('=', 1)[1].strip('"\'')
+                elif line.strip().startswith('REV_API_KEY='):
+                    rev_api_key = line.strip().split('=', 1)[1].strip('"\'')
+    
+    # Mask the keys for display if they exist
+    masked_hf_token = mask_key(hf_token) if hf_token else ''
+    masked_rev_api_key = mask_key(rev_api_key) if rev_api_key else ''
+    
+    context = {
+        'hf_token_set': bool(hf_token),
+        'rev_api_key_set': bool(rev_api_key),
+        'masked_hf_token': masked_hf_token,
+        'masked_rev_api_key': masked_rev_api_key
+    }
+    
+    return render(request, 'batch_processor/settings.html', context)
+
+def mask_key(key):
+    """Mask an API key for display, showing only first 4 and last 4 characters"""
+    if not key or len(key) < 8:
+        return '****'
+    
+    return key[:4] + '****' + key[-4:]
+
+def set_hf_token(request):
+    """Handle AJAX requests to set Hugging Face token"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            token = data.get('token', '')
+            
+            if not token:
+                return JsonResponse({'status': 'error', 'message': 'Token is required'})
+            
+            # Save to .env file
+            save_to_env_file('HF_TOKEN', token)
+            
+            # Also set in current environment
+            os.environ['HF_TOKEN'] = token
+            
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error setting HF token: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def set_rev_api_key(request):
+    """Handle AJAX requests to set Rev.ai API key"""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            api_key = data.get('api_key', '')
+            
+            if not api_key:
+                return JsonResponse({'status': 'error', 'message': 'API key is required'})
+            
+            # Save to .env file
+            save_to_env_file('REV_API_KEY', api_key)
+            
+            # Also set in current environment
+            os.environ['REV_API_KEY'] = api_key
+            
+            return JsonResponse({'status': 'success'})
+        except Exception as e:
+            logger.error(f"Error setting Rev.ai API key: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def get_api_keys(request):
+    """Return masked API keys for display"""
+    if request.method == 'GET':
+        try:
+            import os
+            from pathlib import Path
+            
+            # Create .env file path
+            env_path = Path(settings.BASE_DIR) / '.env'
+            
+            # First check environment variables
+            hf_token = os.environ.get('HF_TOKEN', '')
+            rev_api_key = os.environ.get('REV_API_KEY', '')
+            
+            # Then check .env file if it exists
+            if env_path.exists():
+                with open(env_path, 'r') as f:
+                    for line in f:
+                        if line.strip().startswith('HF_TOKEN='):
+                            hf_token = line.strip().split('=', 1)[1].strip('"\'')
+                        elif line.strip().startswith('REV_API_KEY='):
+                            rev_api_key = line.strip().split('=', 1)[1].strip('"\'')
+            
+            # Mask the keys for display
+            masked_hf_token = mask_key(hf_token) if hf_token else ''
+            masked_rev_api_key = mask_key(rev_api_key) if rev_api_key else ''
+            
+            return JsonResponse({
+                'status': 'success',
+                'hf_token': masked_hf_token,
+                'rev_api_key': masked_rev_api_key,
+                'hf_token_set': bool(hf_token),
+                'rev_api_key_set': bool(rev_api_key)
+            })
+        except Exception as e:
+            logger.error(f"Error getting API keys: {e}")
+            return JsonResponse({'status': 'error', 'message': str(e)})
+    
+    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+
+def save_to_env_file(key, value):
+    """Save key-value pair to .env file"""
+    from pathlib import Path
+    
+    env_path = Path(settings.BASE_DIR) / '.env'
+    
+    # Read existing content
+    lines = []
+    key_exists = False
+    
+    if env_path.exists():
+        with open(env_path, 'r') as f:
+            for line in f:
+                if line.strip().startswith(f'{key}='):
+                    lines.append(f'{key}="{value}"\n')
+                    key_exists = True
+                else:
+                    lines.append(line)
+    
+    # Add new key if not exists
+    if not key_exists:
+        lines.append(f'{key}="{value}"\n')
+    
+    # Write back to file
+    with open(env_path, 'w') as f:
+        f.writelines(lines)
+    
+    logger.info(f"Saved {key} to .env file")

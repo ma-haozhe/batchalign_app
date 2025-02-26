@@ -18,8 +18,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.views.decorators.csrf import csrf_exempt
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('batch_processor.urls')),  # Changed from 'upload/' to '' to make home page accessible at root
+    path('', include('batch_processor.urls')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

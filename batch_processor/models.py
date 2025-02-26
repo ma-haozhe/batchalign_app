@@ -15,6 +15,13 @@ from django.db import models
 
 # Step 1: Define models
 
+class SpeakerMap(models.Model):
+    original_id = models.CharField(max_length=10)  # e.g. PAR0, PAR1
+    chat_role = models.CharField(max_length=50)    # e.g. MOT, CHI
+    
+    def __str__(self):
+        return f"{self.original_id} → {self.chat_role}"
+
 class AudioFile(models.Model):
     title = models.CharField(max_length=200)
     audio_file = models.FileField(upload_to='uploads/', blank=True, null=True)
@@ -29,12 +36,21 @@ class AudioFile(models.Model):
 
 class Transcript(models.Model):
     audio = models.OneToOneField(AudioFile, on_delete=models.CASCADE, related_name='transcript')
-    content = models.TextField(blank=True, null=True)
+    raw_content = models.TextField(blank=True, null=True)  # Original Rev.ai output
+    chat_content = models.TextField(blank=True, default='')  # CHAT format with default empty string
     diarization_data = models.JSONField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    speaker_mapping = models.ManyToManyField(SpeakerMap, blank=True)  # Link to speaker mappings
 
     def __str__(self):
         return f"Transcript for {self.audio.title}"
+
+    def get_chat_content(self):
+        """Returns the CHAT format content with proper speaker mappings"""
+        content = self.chat_content
+        for speaker in self.speaker_mapping.all():
+            content = content.replace(f"*{speaker.original_id}:", f"*{speaker.chat_role}:")
+        return content
 
 # Step 2: Set up views and forms to handle single file and batch uploads (next steps).
 # Step 3: Create test cases for models.
@@ -57,8 +73,8 @@ class AudioFileModelTest(TestCase):
 class TranscriptModelTest(TestCase):
     def test_transcript_creation(self):
         audio = AudioFile.objects.create(title="Test Audio", audio_file=SimpleUploadedFile("test.mp3", b"audio data"))
-        transcript = Transcript.objects.create(audio=audio, content="Sample Transcript")
+        transcript = Transcript.objects.create(audio=audio, chat_content="Sample Transcript")
         self.assertEqual(transcript.audio.title, "Test Audio")
-        self.assertEqual(transcript.content, "Sample Transcript")
+        self.assertEqual(transcript.chat_content, "Sample Transcript")
 
 # Next Steps: Implement views for file upload and allow folder selection for batch uploads.

@@ -1,0 +1,124 @@
+INFO 2025-02-26 12:22:45,112 autoreload 37598 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:23:55,142 autoreload 37664 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:24:22,469 basehttp 37664 13221523456 "GET / HTTP/1.1" 200 1869
+INFO 2025-02-26 12:24:23,557 basehttp 37664 13221523456 "GET /upload/ HTTP/1.1" 200 17278
+INFO 2025-02-26 12:24:28,253 views 37664 13221523456 Processing single file upload: P190FATSTR.mp3
+DEBUG 2025-02-26 12:24:28,269 views 37664 13221523456 File P190FATSTR.mp3 is not a text file (UnicodeDecodeError)
+DEBUG 2025-02-26 12:24:28,269 views 37664 13221523456 File P190FATSTR.mp3 is_chat_file: False
+INFO 2025-02-26 12:24:28,270 views 37664 13221523456 Processing audio file: P190FATSTR.mp3
+INFO 2025-02-26 12:26:14,937 views 37664 13221523456 Successfully processed audio file with 0 speakers
+INFO 2025-02-26 12:26:14,952 basehttp 37664 13221523456 "POST /upload/ HTTP/1.1" 200 45663
+INFO 2025-02-26 12:26:58,017 basehttp 37664 13221523456 "POST /update-speaker-mapping/6/ HTTP/1.1" 200 36744
+INFO 2025-02-26 12:35:02,472 autoreload 38229 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:35:10,842 basehttp 38229 13522464768 "GET / HTTP/1.1" 200 1869
+INFO 2025-02-26 12:35:12,199 basehttp 38229 13522464768 "GET /upload/ HTTP/1.1" 200 17278
+INFO 2025-02-26 12:35:16,964 views 38229 13522464768 Processing single file upload: P190FATSTR.mp3
+INFO 2025-02-26 12:35:16,981 views 38229 13522464768 Found existing transcript for P190FATSTR.mp3
+DEBUG 2025-02-26 12:35:16,981 views 38229 13522464768 Content being parsed for speakers: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|PAR0|||||Participant|||
+@ID:	eng|corpus_name|PAR1|||||Participant|||
+@Media:	P190FATSTR, audio
+*PAR0
+DEBUG 2025-02-26 12:35:16,981 views 38229 13522464768 Extracting speakers from raw content starting with: ['@UTF8', '@Begin', '@Languages:\teng']
+DEBUG 2025-02-26 12:35:16,981 views 38229 13522464768 Found @Participants line: @Participants:	PAR0 Participant, PAR1 Participant
+INFO 2025-02-26 12:35:16,982 views 38229 13522464768 Found speakers from @Participants: ['PAR0', 'PAR1']
+INFO 2025-02-26 12:35:16,982 views 38229 13522464768 Extracted speakers from existing transcript: ['PAR0', 'PAR1']
+DEBUG 2025-02-26 12:35:16,985 views 38229 13522464768 Existing speaker mappings: {}
+INFO 2025-02-26 12:35:16,989 basehttp 38229 13522464768 "POST /upload/ HTTP/1.1" 200 45503
+INFO 2025-02-26 12:35:45,333 basehttp 38229 13522464768 "POST /update-speaker-mapping/6/ HTTP/1.1" 200 36610
+INFO 2025-02-26 12:36:14,556 basehttp 38229 13522464768 "POST /update-speaker-mapping/6/ HTTP/1.1" 200 36610
+INFO 2025-02-26 12:36:19,015 basehttp 38229 13522464768 "POST /update-speaker-mapping/6/ HTTP/1.1" 200 36610
+INFO 2025-02-26 12:36:28,300 basehttp 38229 13522464768 "GET /upload/ HTTP/1.1" 200 17577
+INFO 2025-02-26 12:36:32,592 views 38229 13522464768 Processing single file upload: P190FATSTR.mp3
+INFO 2025-02-26 12:36:32,598 views 38229 13522464768 Found existing transcript for P190FATSTR.mp3
+DEBUG 2025-02-26 12:36:32,598 views 38229 13522464768 Content being parsed for speakers: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|PAR0|||||Participant|||
+@ID:	eng|corpus_name|PAR1|||||Participant|||
+@Media:	P190FATSTR, audio
+*PAR0
+DEBUG 2025-02-26 12:36:32,599 views 38229 13522464768 Extracting speakers from raw content starting with: ['@UTF8', '@Begin', '@Languages:\teng']
+DEBUG 2025-02-26 12:36:32,599 views 38229 13522464768 Found @Participants line: @Participants:	PAR0 Participant, PAR1 Participant
+INFO 2025-02-26 12:36:32,599 views 38229 13522464768 Found speakers from @Participants: ['PAR0', 'PAR1']
+INFO 2025-02-26 12:36:32,599 views 38229 13522464768 Extracted speakers from existing transcript: ['PAR0', 'PAR1']
+DEBUG 2025-02-26 12:36:32,601 views 38229 13522464768 Existing speaker mappings: {'PAR0': {'role': 'FAT', 'display_name': 'fa'}, 'PAR1': {'role': 'CHI', 'display_name': 'child'}}
+INFO 2025-02-26 12:36:32,602 basehttp 38229 13522464768 "POST /upload/ HTTP/1.1" 200 45598
+INFO 2025-02-26 12:36:51,320 autoreload 38229 8260761664 /Users/haozhema/batchalign_app/batchalign_app/urls.py changed, reloading.
+INFO 2025-02-26 12:36:52,823 autoreload 38332 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:45:37,999 autoreload 38716 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:45:49,190 basehttp 38716 13281292288 "GET / HTTP/1.1" 200 1869
+INFO 2025-02-26 12:45:52,210 basehttp 38716 13281292288 "GET /upload/ HTTP/1.1" 200 17171
+INFO 2025-02-26 12:45:55,928 views 38716 13281292288 Processing single file upload: P190FATSTR.mp3
+INFO 2025-02-26 12:45:55,965 views 38716 13281292288 Found existing transcript for P190FATSTR.mp3
+DEBUG 2025-02-26 12:45:55,965 views 38716 13281292288 Content being parsed for speakers: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|PAR0|||||Participant|||
+@ID:	eng|corpus_name|PAR1|||||Participant|||
+@Media:	P190FATSTR, audio
+*PAR0
+DEBUG 2025-02-26 12:45:55,965 views 38716 13281292288 Extracting speakers from raw content starting with: ['@UTF8', '@Begin', '@Languages:\teng']
+DEBUG 2025-02-26 12:45:55,965 views 38716 13281292288 Found @Participants line: @Participants:	PAR0 Participant, PAR1 Participant
+INFO 2025-02-26 12:45:55,965 views 38716 13281292288 Found speakers from @Participants: ['PAR0', 'PAR1']
+INFO 2025-02-26 12:45:55,966 views 38716 13281292288 Extracted speakers from existing transcript: ['PAR0', 'PAR1']
+DEBUG 2025-02-26 12:45:55,967 views 38716 13281292288 Existing speaker mappings: {'PAR0': {'role': 'FAT', 'display_name': 'fa'}, 'PAR1': {'role': 'CHI', 'display_name': 'child'}}
+INFO 2025-02-26 12:45:55,969 basehttp 38716 13281292288 "POST /upload/ HTTP/1.1" 200 45598
+INFO 2025-02-26 12:46:13,573 basehttp 38716 13281292288 "POST /clear-cache/ HTTP/1.1" 200 85
+INFO 2025-02-26 12:53:42,159 autoreload 39162 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 12:53:50,864 basehttp 39162 13898821632 "GET / HTTP/1.1" 200 1869
+INFO 2025-02-26 12:53:53,000 basehttp 39162 13898821632 "GET /upload/ HTTP/1.1" 200 17171
+INFO 2025-02-26 12:53:56,459 views 39162 13898821632 Processing single file upload: P190FATSTR.mp3
+DEBUG 2025-02-26 12:53:56,468 views 39162 13898821632 File P190FATSTR.mp3 is not a text file (UnicodeDecodeError)
+DEBUG 2025-02-26 12:53:56,468 views 39162 13898821632 File P190FATSTR.mp3 is_chat_file: False
+INFO 2025-02-26 12:53:56,468 views 39162 13898821632 Processing audio file: P190FATSTR.mp3
+DEBUG 2025-02-26 12:55:40,291 views 39162 13898821632 Extracting speakers from raw content starting with: ['@UTF8', '@Begin', '@Languages:\teng']
+DEBUG 2025-02-26 12:55:40,292 views 39162 13898821632 Found @Participants line: @Participants:	PAR0 Participant, PAR1 Participant
+INFO 2025-02-26 12:55:40,292 views 39162 13898821632 Found speakers from @Participants: ['PAR0', 'PAR1']
+INFO 2025-02-26 12:55:40,292 views 39162 13898821632 Extracted 2 speakers from audio: ['PAR0', 'PAR1']
+INFO 2025-02-26 12:55:40,301 views 39162 13898821632 Successfully processed audio with speakers: ['PAR0', 'PAR1']
+DEBUG 2025-02-26 12:55:40,301 views 39162 13898821632 Raw content preview: ['PAR0: just the cow yeah . \x150_1445\x15', 'PAR0: look at the cow is humble . \x152075_3165\x15', 'PAR0: do you wanna play with a different game yeah . \x153265_5525\x15', 'PAR0: like your cheek saw yeah . \x156275_8125\x15', 'PAR0: so we have to get the pieces okay yeah . \x158305_10885\x15', 'PAR0: can we get it wow . \x1511625_14165\x15', 'PAR0: look at this . \x1514235_14805\x15', 'PAR0: oh oh wow . \x1515705_19745\x15', 'PAR0: what is this . \x1522335_23025\x15', 'PAR0: what it is . \x1523745_24315\x15', 'PAR0: we take this out for business . \x1524375_25635\x15', "PAR0: it's like fishing . \x1528825_29675\x15", 'PAR0: so to pick up the cars the car back yeah . \x1531935_41255\x15', 'PAR0: so now you go and you pick up the different cars . \x1542155_44295\x15', 'PAR0: and you pick up the . \x1544395_45255\x15', 'PAR0: ah up it comes wow . \x1546075_49965\x15', 'PAR0: and you get three you get to me . \x1550105_52845\x15', 'PAR0: come on . \x1554155_54685\x15', 'PAR0: does it work . \x1558395_58965\x15', 'PAR0: well go fishing . \x1560955_62645\x15', "PAR0: remember the when you're fishing . \x1563085_64005\x15", 'PAR0: look if you hold this you hold the truck okay . \x1564075_67805\x15', 'PAR0: and then let it fish . \x1568385_69765\x15', "PAR0: it's like the fish . \x1569835_70605\x15", 'PAR0: and then you try and pick up the other cars . \x1571385_72885\x15', 'PAR0: will I show you okay . \x1572885_76485\x15', 'PAR0: come back . \x1579995_80605\x15', 'PAR0: come on . \x1580875_81365\x15', 'PAR0: so look can I show you . \x1581705_82885\x15', 'PAR0: then you can try it . \x1583835_84845\x15', 'PAR0: what other see this is what this is the La look and then kira look . \x1586375_93985\x15', 'PAR0: oh no . \x1594765_95425\x15', 'PAR0: and then look the goes look car . \x1597085_99345\x15', 'PAR0: look I got the car boom boom boom boom boom boom boom . \x1599695_104465\x15', 'PAR0: now you gotta put the cars in does it fit better yeah I try a different one . \x15107485_124345\x15', 'PAR0: yeah no some more . \x15129255_132105\x15', 'PAR0: here this blo you wanna play with the cars . \x15132105_141865\x15', 'PAR0: now we try this one . \x15144085_145425\x15', 'PAR0: first look here this up . \x15145425_150065\x15', 'PAR0: oh flossy picked it up . \x15150845_151905\x15', 'PAR0: can flossy pick it up with a magic car . \x15151925_153585\x15', 'PAR0: look this is the special car kira Kira look looks look Flossy watch Flossy look . \x15153655_164745\x15', 'PAR0: ah oh wow . \x15165085_167075\x15', 'PAR0: look this is the special car . \x15167345_168915\x15', 'PAR0: and it picks up the other cars . \x15169535_170835\x15', 'PAR0: now do you wanna go do you wanna have a special car . \x15172255_174435\x15', 'PAR0: oh very good . \x15177925_178585\x15', 'PAR0: this glass you gotta . \x15179395_180165\x15', 'PAR0: put it in very good bus . \x15180165_185445\x15', "PAR0: now where's this one . \x15186705_188085\x15", 'PAR0: where does that go . \x15188775_189645\x15', "PAR0: maybe not try one of the other ones no oops now where does it go is it didn't there okay . \x15191575_217935\x15", "PAR0: well I can't hear you . \x15218365_219255\x15", 'PAR0: take this out . \x15219255_219895\x15', 'PAR0: tell me please please . \x15221205_223495\x15', 'PAR0: good girl . \x15223605_224095\x15', 'PAR0: now where does this go this . \x15224635_226175\x15', 'PAR0: see this . \x15226275_230895\x15', 'PAR0: go here . \x15230915_231335\x15', "PAR0: here we'll drive here . \x15231485_233175\x15", 'PAR0: oh no . \x15234515_235175\x15', 'PAR0: how about here . \x15236515_237095\x15', 'PAR0: yeah no yeah no . \x15237485_241135\x15', 'PAR0: yeah yeah i buy . \x15241765_246175\x15', 'PAR0: now do you wanna get another one . \x15248595_249455\x15', 'PAR0: you get the special car . \x15249455_250775\x15', 'PAR0: and you pick up another one . \x15250835_252055\x15', 'PAR0: you pick up one . \x15252595_253295\x15', 'PAR0: we leave that one there you pick up one of these other ones here okay different . \x15253435_258135\x15', 'PAR0: yay up go boom boom . \x15262085_264865\x15', 'PAR0: um let we try to put in here . \x15267565_269825\x15', 'PAR0: hey high five I come mine . \x15274885_278285\x15', 'PAR0: you come within the truck the special truck . \x15279105_282205\x15', "PAR0: you don't get another one . \x15282205_283045\x15", 'PAR0: um let me see . \x15285385_288085\x15', "PAR0: oh that's what color car . \x15288145_289405\x15", 'PAR0: is that . \x15289405_289685\x15', 'PAR0: what color is it . \x15291635_292525\x15', 'PAR0: put it in there no . \x15297905_299445\x15', "PAR0: oh it's too big . \x15301945_302805\x15", 'PAR0: maybe this one . \x15305175_306565\x15', "PAR0: it's too small is it yeah . \x15309395_311285\x15", 'PAR0: how about this one Yay high five . \x15311585_317325\x15', 'PAR0: good girl . \x15317915_318445\x15', 'PAR0: now get your special card . \x15318585_319765\x15', 'PAR0: oh no . \x15320105_320525\x15', 'PAR0: again with this Willie now do you get another car karen boom . \x15320735_335005\x15', 'PAR0: oh like the cow . \x15335825_337925\x15', 'PAR0: you want the cow like the cow I think the cow is gone to sleep yeah . \x15338825_343445\x15', 'PAR0: but we get the cow . \x15343665_344525\x15', 'PAR0: might be wait later though . \x15344525_345605\x15', 'PAR0: hey you get the better car . \x15347975_350635\x15', "PAR0: get one good girl Mr cow daddy Mr cow yeah I think mr Cal and mr Horace and mr Cat they're all asleep I think but they'd be out later on . \x15350635_366305\x15", "PAR0: don't them later yeah okay . \x15366955_370145\x15", 'PAR0: oh it might be too small there yeah . \x15370205_372985\x15', "PAR0: what about this one mr kyle mr Horace yeah I think they're asleep yeah . \x15374335_383945\x15", 'PAR0: can you hear them . \x15384085_384705\x15', 'PAR0: can you hear them ooh ooh good girl . \x15393245_400145\x15', 'PAR0: now get your special car and get another one . \x15400645_402465\x15', 'PAR0: boom boom boom boom boom boom good hey . \x15403495_410775\x15', "PAR1: hello I that's fun I've got another toy for us to try now . \x15411305_420535\x15", "PAR1: um and then and then what I'll do afterwards is I'll just get a big box of toys . \x15421875_426735\x15", 'PAR1: oh okay . \x15426955_427295\x15', "PAR1: so the two of you can just choose what you'd like to play . \x15427315_429295\x15", 'PAR1: but I want to do this one first okay . \x15429755_432535\x15', "PAR1: that's okay . \x15432535_433015\x15", "PAR1: so I'll I'll explain to you . \x15433115_434335\x15", 'PAR1: um i I think her all like this . \x15435075_438175\x15', 'PAR1: we like this story . \x15438175_438895\x15', "PAR1: but it it's one that's um it's for um it's for her to play by herself okay . \x15438895_444535\x15", "PAR1: so this one's quite difficult for for some of the dads but yeah it's just for three minutes I'd really like you to try and not to not say anything to her during that time okay cool . \x15444535_452215\x15", 'PAR1: so um what might happen is she might ask you for help um or or try to give you the toy to do . \x15452355_457975\x15', "PAR1: and that's fine . \x15458755_459295\x15", 'PAR1: but if you could just try not to say anything she passes you the toy . \x15459295_461615\x15', 'PAR1: then just put it down on the floor next to you yeah . \x15461615_463335\x15', 'PAR1: and um can pick it up exactly . \x15463715_465375\x15', "PAR1: and then after three minutes there'll be some time for you to play a bit together yeah . \x15465375_468895\x15", 'PAR1: so so hopefully that will be okay . \x15469075_470775\x15', 'PAR1: so oh that a new way for us to try now . \x15470955_477615\x15', 'PAR0: say goodbye to the car . \x15481355_482295\x15', 'PAR0: well I put those away yeah . \x15485005_486615\x15', "PAR1: yeah I'll put . \x15486765_487415\x15", 'PAR0: those away . \x15487415_487815\x15', 'PAR1: thank you . \x15488065_488455\x15', 'PAR1: where are those other bits . \x15488455_489415\x15']
+DEBUG 2025-02-26 12:55:40,303 views 39162 13898821632 Chat content preview: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|PAR0|||||Participant|||
+@ID:	eng|corpus_name|PAR1|||||Participant|||
+@Media:	P190FATSTR, audio
+*PAR0
+DEBUG 2025-02-26 12:55:40,303 views 39162 13898821632 Created default speaker mappings: {'PAR0': {'role': '', 'display_name': ''}, 'PAR1': {'role': '', 'display_name': ''}}
+DEBUG 2025-02-26 12:55:40,321 views 39162 13898821632 Created/updated transcript with id 7
+INFO 2025-02-26 12:55:40,323 basehttp 39162 13898821632 "POST /upload/ HTTP/1.1" 200 45029
+INFO 2025-02-26 13:02:15,346 basehttp 39162 13898821632 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36209
+INFO 2025-02-26 13:10:46,008 basehttp 39162 13898821632 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36209
+INFO 2025-02-26 13:16:24,606 basehttp 39162 13898821632 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36312
+INFO 2025-02-26 13:16:33,342 basehttp 39162 13898821632 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36209
+INFO 2025-02-26 13:16:38,517 basehttp 39162 13898821632 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36209
+INFO 2025-02-26 13:23:58,512 autoreload 39162 8260761664 /Users/haozhema/batchalign_app/batch_processor/views.py changed, reloading.
+INFO 2025-02-26 13:24:00,280 autoreload 39736 8260761664 Watching for file changes with StatReloader
+INFO 2025-02-26 13:24:14,201 basehttp 39736 13075804160 "GET / HTTP/1.1" 200 1869
+INFO 2025-02-26 13:24:15,923 basehttp 39736 13075804160 "GET /upload/ HTTP/1.1" 200 17171
+INFO 2025-02-26 13:24:43,534 views 39736 13075804160 Processing single file upload: P190FATSTR.mp3
+INFO 2025-02-26 13:24:43,555 views 39736 13075804160 Found existing transcript for P190FATSTR.mp3
+DEBUG 2025-02-26 13:24:43,555 views 39736 13075804160 Content being parsed for speakers: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|PAR0|||||Participant|||
+@ID:	eng|corpus_name|PAR1|||||Participant|||
+@Media:	P190FATSTR, audio
+*PAR0
+DEBUG 2025-02-26 13:24:43,556 views 39736 13075804160 Extracting speakers from raw content starting with: ['@UTF8', '@Begin', '@Languages:\teng']
+DEBUG 2025-02-26 13:24:43,556 views 39736 13075804160 Found @Participants line: @Participants:	PAR0 Participant, PAR1 Participant
+INFO 2025-02-26 13:24:43,556 views 39736 13075804160 Found speakers from @Participants: ['PAR1', 'PAR0']
+INFO 2025-02-26 13:24:43,556 views 39736 13075804160 Extracted speakers from existing transcript: ['PAR1', 'PAR0']
+DEBUG 2025-02-26 13:24:43,557 views 39736 13075804160 Existing speaker mappings: {'PAR0': {'role': 'MOO', 'display_name': 'MOO'}, 'PAR1': {'role': 'FAT', 'display_name': 'FAT'}}
+INFO 2025-02-26 13:24:43,558 basehttp 39736 13075804160 "POST /upload/ HTTP/1.1" 200 44885
+INFO 2025-02-26 13:24:53,572 basehttp 39736 13075804160 "POST /update-speaker-mapping/7/ HTTP/1.1" 200 36173
+INFO 2025-02-26 13:25:01,351 autoreload 39736 8260761664 /Users/haozhema/batchalign_app/batch_processor/models.py changed, reloading.
+INFO 2025-02-26 13:25:02,704 autoreload 39786 8260761664 Watching for file changes with StatReloader

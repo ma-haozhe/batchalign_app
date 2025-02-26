@@ -103,13 +103,147 @@
             color: #2c5282;
             font-weight: bold;
         }
+
+        .download-chat {
+            display: inline-block;
+            background-color: #2196F3;
+            color: white;
+            padding: 8px 16px;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+        
+        .download-chat:hover {
+            background-color: #1976D2;
+        }
+
+        .speaker-mapping {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #f8f9fa;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+        }
+        
+        .speaker-map-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+            width: 100%;
+        }
+        
+        .speaker-input-group {
+            padding: 15px;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .speaker-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #2c5282;
+        }
+        
+        .speaker-input-group input {
+            width: calc(100% - 16px);  /* Account for padding */
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+            display: block;
+        }
+
+        .speaker-input-group input::placeholder {
+            color: #6c757d;
+            font-style: italic;
+        }
+        
+        .apply-mapping {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 15px;
+            font-size: 14px;
+            width: auto;
+            min-width: 200px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .apply-mapping:hover {
+            background-color: #0056b3;
+        }
+        
+        .format-toggle {
+            margin: 15px 0;
+            display: flex;
+            gap: 0;
+            width: fit-content;
+        }
+        
+        .format-toggle button {
+            padding: 8px 16px;
+            border: 1px solid #dee2e6;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.2s;
+        }
+        
+        .format-toggle button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        
+        .format-toggle button:first-child {
+            border-radius: 4px 0 0 4px;
+        }
+        
+        .format-toggle button:last-child {
+            border-radius: 0 4px 4px 0;
+        }
+
+        .speaker-help {
+            font-size: 13px;
+            color: #666;
+            margin: 5px 0;
+        }
+
+        .clear-cache-btn {
+            background-color: #dc3545;
+            color: white;
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            float: right;
+            font-size: 14px;
+        }
+        
+        .clear-cache-btn:hover {
+            background-color: #c82333;
+        }
     </style>
 </head>
 <body>
     <h1>Batchalign Audio Processing</h1>
     
     <div class="upload-container">
-        <h2>Upload Audio Files</h2>
+        <h2>Upload Audio Files <button onclick="clearCache()" class="clear-cache-btn">Clear All Cache</button></h2>
         <form method="post" enctype="multipart/form-data" id="uploadForm">
             {% csrf_token %}
             
@@ -130,6 +264,62 @@
     <div id="result"></div>
 
     <script>
+        function createSpeakerMappingUI(speakers, transcriptId, existingMappings = {}) {
+            const container = document.createElement('div');
+            container.className = 'speaker-mapping';
+            container.innerHTML = `
+                <h3>Map Speakers to CHAT Format</h3>
+                <div class="speaker-help">Rename speakers to CHAT format roles (e.g. MOT for Mother, CHI for Child)</div>
+                <form class="speaker-map-form">
+                    ${speakers.map(speaker => {
+                        const existing = existingMappings[speaker] || {};
+                        return `
+                            <div class="speaker-input-group">
+                                <label>Speaker: ${speaker}</label>
+                                <input type="text" placeholder="Role (e.g. MOT, CHI)" 
+                                       class="role" data-speaker="${speaker}"
+                                       value="${existing.role || ''}" required>
+                            </div>
+                        `;
+                    }).join('')}
+                    <button type="submit" class="apply-mapping">Update Speaker Mapping</button>
+                </form>`;
+
+            container.querySelector('form').addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const mappings = {};
+                speakers.forEach(speaker => {
+                    const roleInput = container.querySelector(`.role[data-speaker="${speaker}"]`);
+                    mappings[speaker] = {
+                        role: roleInput.value.toUpperCase(),
+                        display_name: roleInput.value
+                    };
+                });
+
+                try {
+                    const response = await fetch(`/update-speaker-mapping/${transcriptId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({ mappings })
+                    });
+                    const data = await response.json();
+                    if (data.status === 'success') {
+                        const chatContent = document.querySelector('.chat-content');
+                        chatContent.textContent = data.chat_content;
+                        // Always show CHAT format after updating
+                        toggleFormat('chat');
+                    }
+                } catch (error) {
+                    console.error('Error updating speaker mapping:', error);
+                }
+            });
+
+            return container;
+        }
+
         document.getElementById('uploadForm').onsubmit = function(e) {
             e.preventDefault();
             
@@ -150,10 +340,6 @@
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Format the transcript with proper line breaks and speaker highlighting
-                    const formattedTranscript = data.transcript
-                        .replace(/\*[A-Z]+:/g, match => `<span class="speaker">${match}</span>`);
-                    
                     let notificationHtml = '';
                     if (data.message) {
                         notificationHtml = `
@@ -163,17 +349,45 @@
                         `;
                     }
                     
+                    const speakerMappingUI = createSpeakerMappingUI(
+                        data.speakers, 
+                        data.transcript_id,
+                        data.existing_mappings
+                    );
+                    
                     resultDiv.innerHTML = `
                         ${notificationHtml}
                         <div class="success">
                             <h3>Processing Completed Successfully!</h3>
-                            <div class="transcript-container">${formattedTranscript}</div>
+                            <div class="speaker-mapping-container"></div>
+                            <div class="format-toggle">
+                                <button onclick="toggleFormat('chat')" class="active">CHAT Format</button>
+                                <button onclick="toggleFormat('raw')" ${!data.raw_content ? 'disabled' : ''}>Raw Format</button>
+                            </div>
+                            ${data.raw_content ? 
+                                `<div class="raw-content transcript-container" style="display: none">${data.raw_content}</div>` : ''}
+                            <div class="chat-content transcript-container">${data.chat_content}</div>
                         </div>`;
+                    
+                    resultDiv.querySelector('.speaker-mapping-container').appendChild(speakerMappingUI);
+                    
                 } else if (data.status === 'batch_completed') {
                     const results = data.results.map(result => {
                         let statusIcon = result.status === 'success' ? '✅' : '❌';
                         let statusMessage = result.message ? ` (${result.message})` : '';
-                        return `<li class="${result.status}">${statusIcon} ${result.file}: ${result.status}${statusMessage}</li>`;
+                        let speakerMapping = '';
+                        if (result.status === 'success') {
+                            speakerMapping = createSpeakerMappingUI(
+                                result.speakers, 
+                                result.transcript_id,
+                                result.existing_mappings
+                            ).outerHTML;
+                        }
+                        return `
+                            <li class="${result.status}">
+                                ${statusIcon} ${result.file}: ${result.status}${statusMessage}
+                                ${speakerMapping}
+                            </li>`;
                     }).join('');
                     
                     resultDiv.innerHTML = `
@@ -195,6 +409,63 @@
                     </div>`;
             });
         };
+
+        async function clearCache() {
+            if (!confirm('Are you sure you want to clear all processed files and transcripts? This cannot be undone.')) {
+                return;
+            }
+            
+            try {
+                const response = await fetch('/clear-cache/', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    }
+                });
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    document.getElementById('result').innerHTML = `
+                        <div class="notification success">
+                            <span>✅ ${data.message}</span>
+                        </div>
+                    `;
+                    // Clear file inputs
+                    document.getElementById('audio_file').value = '';
+                    document.getElementById('input_folder').value = '';
+                } else {
+                    document.getElementById('result').innerHTML = `
+                        <div class="notification error">
+                            <span>❌ ${data.message}</span>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                document.getElementById('result').innerHTML = `
+                    <div class="notification error">
+                        <span>❌ An error occurred while clearing cache</span>
+                    </div>
+                `;
+            }
+        }
+
+        function toggleFormat(format) {
+            const rawContent = document.querySelector('.raw-content');
+            const chatContent = document.querySelector('.chat-content');
+            const buttons = document.querySelectorAll('.format-toggle button');
+            
+            if (format === 'raw') {
+                rawContent.style.display = 'block';
+                chatContent.style.display = 'none';
+                buttons[1].classList.add('active');
+                buttons[0].classList.remove('active');
+            } else {
+                rawContent.style.display = 'none';
+                chatContent.style.display = 'block';
+                buttons[0].classList.add('active');
+                buttons[1].classList.remove('active');
+            }
+        }
 
         // Prevent both upload inputs from being used simultaneously
         document.getElementById('audio_file').onchange = function() {

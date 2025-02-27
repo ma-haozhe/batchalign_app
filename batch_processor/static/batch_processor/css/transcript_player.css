@@ -1,0 +1,185 @@
+/* Transcript Player Styles */
+
+/* Transcript container */
+.transcript-container {
+    max-height: 500px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-family: monospace;
+    line-height: 1.5;
+    font-size: 14px;
+}
+
+.transcript-header {
+    max-height: 200px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+    font-family: monospace;
+    line-height: 1.5;
+    font-size: 14px;
+    margin-bottom: 10px;
+    background-color: #f8f9fa;
+}
+
+/* Transcript lines */
+.transcript-line {
+    padding: 5px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-bottom: 6px;
+    transition: background-color 0.3s, border-left 0.3s;
+    border-left: 3px solid transparent;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+}
+
+.transcript-line:hover {
+    background-color: #f0f0f0;
+}
+
+.transcript-line.active {
+    background-color: #e2f0ff;
+    border-left: 3px solid #007bff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    font-weight: 500;
+}
+
+.transcript-line.next-up {
+    background-color: #f0f8ff;
+    border-left: 3px solid #6c757d;
+}
+
+/* Speaker labels */
+.speaker-label {
+    font-weight: bold;
+    margin-right: 12px;
+    min-width: 80px;
+    color: #2c5282;
+}
+
+/* Timestamps */
+.transcript-timestamp {
+    color: #6c757d;
+    font-size: 0.85em;
+    margin-right: 12px;
+    user-select: none;
+    background-color: #f8f9fa;
+    padding: 2px 6px;
+    border-radius: 3px;
+    min-width: 50px;
+    text-align: center;
+}
+
+/* Comment lines */
+.comment-line {
+    color: #6c757d;
+    font-style: italic;
+    padding-left: 30px;
+    font-size: 0.9em;
+    border-left: 3px solid #e9ecef;
+}
+
+/* Header lines */
+.header-line {
+    color: #495057;
+    font-family: monospace;
+    padding: 3px 0;
+}
+
+/* Utterance text */
+.utterance-text {
+    white-space: pre-wrap;
+    flex: 1;
+}
+
+/* Word highlighting */
+.highlighted-word {
+    background-color: #ffff00;
+    font-weight: bold;
+}
+
+/* Raw content */
+.raw-content {
+    max-height: 500px;
+    overflow-y: auto;
+    white-space: pre-wrap;
+    font-family: monospace;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* Missing segments */
+.missing-segment {
+    padding: 8px 10px;
+    margin: 8px 0;
+    background-color: #fff3cd;
+    border-left: 3px solid #ffc107;
+    border-radius: 4px;
+    cursor: pointer;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    transition: background-color 0.2s ease;
+}
+
+.missing-segment:hover {
+    background-color: #ffe8a1;
+}
+
+.missing-segment-icon {
+    color: #ffc107;
+    margin-right: 8px;
+}
+
+.missing-segment-text {
+    color: #856404;
+    flex: 1;
+}
+
+.missing-segment-text.placeholder-text {
+    font-style: italic;
+    color: #856404;
+    opacity: 0.8;
+}
+
+.missing-segment .btn {
+    margin-left: 8px;
+}
+
+.missing-segment-edit {
+    width: 100%;
+    margin-top: 8px;
+}
+
+.missing-segment .input-group {
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Spinner for loading state */
+.spinning {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Loading and status indicators */
+.loading-indicator {
+    font-style: italic;
+    color: #6c757d;
+}
+
+.success-message {
+    color: #28a745;
+    font-style: italic;
+}
+
+.error-message {
+    color: #dc3545;
+    font-style: italic;
+} 

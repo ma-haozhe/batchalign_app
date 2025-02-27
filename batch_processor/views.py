@@ -599,8 +599,13 @@ def view_transcript(request, transcript_id):
             segments = transcript.get_segments()
         segments_json = json.dumps(segments)
         
+        # Prepare missing segments JSON if available
+        missing_segments = transcript.missing_segments or []
+        missing_segments_json = json.dumps(missing_segments)
+        
         # Debug information
         logger.debug(f"Transcript {transcript_id} content length: {len(transcript.chat_content) if transcript.chat_content else 0}")
+        logger.debug(f"Found {len(missing_segments)} missing segments")
         
         context = {
             'transcript': transcript,
@@ -610,6 +615,7 @@ def view_transcript(request, transcript_id):
             'audio_url': audio_url,
             'transcript_segments_json': transcript_segments_json,
             'segments_json': segments_json,
+            'missing_segments': missing_segments_json,
         }
         
         return render(request, 'batch_processor/transcript_player.html', context)
@@ -772,3 +778,143 @@ def save_to_env_file(key, value):
         f.writelines(lines)
     
     logger.info(f"Saved {key} to .env file")
+    
+def run_pyannote_diarization(request, transcript_id):
+    """Process audio file with Pyannote for speaker diarization"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Only POST method is allowed'})
+    
+    try:
+        from .views_pyannote import process_with_pyannote
+        
+        transcript = Transcript.objects.get(id=transcript_id)
+        audio_file = transcript.audio
+        
+        # Check if audio file exists
+        if not audio_file or not audio_file.audio_file:
+            return JsonResponse({'success': False, 'message': 'Audio file not found'})
+        
+        # Get audio file path
+        audio_path = audio_file.audio_file.path
+        
+        # Check if Hugging Face token is set
+        hf_token = get_hf_token()
+        if not hf_token:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Hugging Face token is not set. Please set it in settings.'
+            })
+        
+        # Run Pyannote
+        diarization_data, missing_segments = process_with_pyannote(audio_path, hf_token, transcript)
+        
+        if diarization_data is None:
+            return JsonResponse({
+                'success': False, 
+                'message': 'Failed to process audio with Pyannote. Check logs for details.'
+            })
+        
+        # Update transcript with diarization data
+        transcript.diarization_data = diarization_data
+        transcript.missing_segments = missing_segments
+        transcript.pyannote_processed = True
+        transcript.save()
+        
+        return JsonResponse({
+            'success': True, 
+            'message': 'Speaker diarization completed successfully',
+            'diarization_count': len(diarization_data),
+            'missing_segments_count': len(missing_segments)
+        })
+        
+    except Transcript.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Transcript not found'})
+    except Exception as e:
+        logger.exception(f"Error processing audio with Pyannote: {e}")
+        return JsonResponse({'success': False, 'message': str(e)})
+
+def get_hf_token():
+    """Get Hugging Face token from environment or .env file"""
+    import os
+    from pathlib import Path
+    
+    # First check environment variables
+    hf_token = os.environ.get('HF_TOKEN', '')
+    
+    # Then check .env file if token not in environment
+    if not hf_token:
+        env_path = Path(settings.BASE_DIR) / '.env'
+        if env_path.exists():
+            with open(env_path, 'r') as f:
+                for line in f:
+                    if line.strip().startswith('HF_TOKEN='):
+                        hf_token = line.strip().split('=', 1)[1].strip('"\'')
+                        break
+    
+    return hf_token
+
+def update_missing_segment(request, transcript_id):
+    """Update the text for a missing segment"""
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'message': 'Only POST method is allowed'})
+    
+    try:
+        data = json.loads(request.body)
+        segment_id = data.get('segment_id')
+        text = data.get('text', '')
+        start_time = data.get('start_time')
+        end_time = data.get('end_time')
+        speaker = data.get('speaker', '')
+        
+        if not segment_id or not text:
+            return JsonResponse({'success': False, 'message': 'Missing required parameters'})
+        
+        transcript = Transcript.objects.get(id=transcript_id)
+        
+        # Get current missing segments
+        missing_segments = transcript.missing_segments or []
+        
+        # Find and update the segment
+        segment_found = False
+        for segment in missing_segments:
+            if segment.get('id') == segment_id:
+                segment['text'] = text
+                segment_found = True
+                break
+        
+        # If not found by ID, try to find by time and speaker
+        if not segment_found and start_time and end_time:
+            for segment in missing_segments:
+                if (str(segment.get('start')) == str(start_time) and 
+                    str(segment.get('end')) == str(end_time) and
+                    segment.get('speaker') == speaker):
+                    segment['text'] = text
+                    segment['id'] = segment_id  # Add ID for future reference
+                    segment_found = True
+                    break
+        
+        # If still not found, add as new segment
+        if not segment_found and start_time and end_time:
+            missing_segments.append({
+                'id': segment_id,
+                'start': int(start_time),
+                'end': int(end_time),
+                'speaker': speaker,
+                'text': text
+            })
+        
+        # Update the transcript
+        transcript.missing_segments = missing_segments
+        transcript.save()
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Segment updated successfully',
+            'speaker': speaker
+        })
+        
+    except Transcript.DoesNotExist:
+        return JsonResponse({'success': False, 'message': 'Transcript not found'})
+    except Exception as e:
+        logger.exception(f"Error updating missing segment: {e}")
+        return JsonResponse({'success': False, 'message': str(e)})

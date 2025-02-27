@@ -1,0 +1,234 @@
+{% extends "batch_processor/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1>API Settings</h1>
+        <p class="lead">Configure your API keys for transcription and speaker diarization</p>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Hugging Face Token</h4>
+                </div>
+                <div class="card-body">
+                    <p>To use Pyannote speaker diarization, you need to set up your Hugging Face token:</p>
+                    <ol>
+                        <li>Visit <a href="https://huggingface.co/pyannote/speaker-diarization" target="_blank">https://huggingface.co/pyannote/speaker-diarization</a> and accept the user conditions</li>
+                        <li>Create an access token at <a href="https://hf.co/settings/tokens" target="_blank">https://hf.co/settings/tokens</a></li>
+                        <li>Enter your token below:</li>
+                    </ol>
+                    
+                    <form id="hfTokenForm" class="mt-3">
+                        <div class="input-group mb-3">
+                            <input type="text" id="hfToken" class="form-control" placeholder="Enter your Hugging Face token">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">Save Token</button>
+                            </div>
+                        </div>
+                        <div id="tokenStatus" class="mt-2"></div>
+                        {% if masked_hf_token %}
+                        <div class="alert alert-info">
+                            Current token: {{ masked_hf_token }}
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-6">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Rev.ai API Key</h4>
+                </div>
+                <div class="card-body">
+                    <p>To use Rev.ai for speech recognition, you need to set up your API key:</p>
+                    <ol>
+                        <li>Sign up for an account at <a href="https://www.rev.ai/" target="_blank">https://www.rev.ai/</a></li>
+                        <li>Get your API key from your Rev.ai dashboard</li>
+                        <li>Enter your API key below:</li>
+                    </ol>
+                    
+                    <form id="revApiForm" class="mt-3">
+                        <div class="input-group mb-3">
+                            <input type="text" id="revApiKey" class="form-control" placeholder="Enter your Rev.ai API key">
+                            <div class="input-group-append">
+                                <button class="btn btn-primary" type="submit">Save API Key</button>
+                            </div>
+                        </div>
+                        <div id="revApiStatus" class="mt-2"></div>
+                        {% if masked_rev_api_key %}
+                        <div class="alert alert-info">
+                            Current API key: {{ masked_rev_api_key }}
+                        </div>
+                        {% endif %}
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-info text-white">
+            <h4>Current Settings</h4>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h5>Hugging Face Token</h5>
+                    <p id="currentHfToken">
+                        {% if hf_token_set %}
+                            <span class="badge bg-success">Set</span>
+                        {% else %}
+                            <span class="badge bg-danger">Not Set</span>
+                        {% endif %}
+                    </p>
+                </div>
+                <div class="col-md-6">
+                    <h5>Rev.ai API Key</h5>
+                    <p id="currentRevApi">
+                        {% if rev_api_key_set %}
+                            <span class="badge bg-success">Set</span>
+                        {% else %}
+                            <span class="badge bg-danger">Not Set</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Get current API keys on page load
+window.addEventListener('DOMContentLoaded', function() {
+    fetch('/get-api-keys/')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // Update current status
+                document.getElementById('currentHfToken').innerHTML = data.hf_token_set ? 
+                    '<span class="badge bg-success">Set</span>' : 
+                    '<span class="badge bg-danger">Not Set</span>';
+                
+                document.getElementById('currentRevApi').innerHTML = data.rev_api_key_set ? 
+                    '<span class="badge bg-success">Set</span>' : 
+                    '<span class="badge bg-danger">Not Set</span>';
+                
+                // If keys are masked, display them
+                if (data.hf_token) {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'alert alert-info';
+                    infoDiv.textContent = `Current token: ${data.hf_token}`;
+                    document.getElementById('tokenStatus').appendChild(infoDiv);
+                }
+                
+                if (data.rev_api_key) {
+                    const infoDiv = document.createElement('div');
+                    infoDiv.className = 'alert alert-info';
+                    infoDiv.textContent = `Current API key: ${data.rev_api_key}`;
+                    document.getElementById('revApiStatus').appendChild(infoDiv);
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error fetching API keys:', error);
+        });
+});
+
+document.getElementById('hfTokenForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const token = document.getElementById('hfToken').value.trim();
+    if (!token) {
+        document.getElementById('tokenStatus').innerHTML = '<div class="alert alert-danger">Please enter a valid token</div>';
+        return;
+    }
+    
+    // Send token to server
+    fetch('/set-hf-token/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ token: token })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.getElementById('tokenStatus').innerHTML = '<div class="alert alert-success">Token saved successfully!</div>';
+            document.getElementById('currentHfToken').innerHTML = '<span class="badge bg-success">Set</span>';
+            // Clear the input
+            document.getElementById('hfToken').value = '';
+            
+            // Reload page after a short delay to show the updated info
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            document.getElementById('tokenStatus').innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        document.getElementById('tokenStatus').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+    });
+});
+
+document.getElementById('revApiForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    const apiKey = document.getElementById('revApiKey').value.trim();
+    if (!apiKey) {
+        document.getElementById('revApiStatus').innerHTML = '<div class="alert alert-danger">Please enter a valid API key</div>';
+        return;
+    }
+    
+    // Send API key to server
+    fetch('/set-rev-api-key/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ api_key: apiKey })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            document.getElementById('revApiStatus').innerHTML = '<div class="alert alert-success">API key saved successfully!</div>';
+            document.getElementById('currentRevApi').innerHTML = '<span class="badge bg-success">Set</span>';
+            // Clear the input
+            document.getElementById('revApiKey').value = '';
+            
+            // Reload page after a short delay to show the updated info
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        } else {
+            document.getElementById('revApiStatus').innerHTML = `<div class="alert alert-danger">Error: ${data.message}</div>`;
+        }
+    })
+    .catch(error => {
+        document.getElementById('revApiStatus').innerHTML = `<div class="alert alert-danger">Error: ${error.message}</div>`;
+    });
+});
+
+// Helper function to get CSRF token
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+{% endblock %} 

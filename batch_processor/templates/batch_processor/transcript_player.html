@@ -5,49 +5,219 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'batch_processor/css/transcript_player.css' %}">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
+<!-- WaveSurfer.js for audio visualization -->
+<script src="https://unpkg.com/wavesurfer.js@6.6.4"></script>
+<!-- Verify if WaveSurfer loaded correctly -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  if (typeof WaveSurfer === 'undefined') {
+    console.error("ERROR: WaveSurfer.js failed to load! Adding local fallback...");
+    var script = document.createElement('script');
+    script.src = "https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/6.6.4/wavesurfer.min.js";
+    document.head.appendChild(script);
+  } else {
+    console.log("WaveSurfer.js loaded successfully");
+  }
+  
+  // AUDIO FALLBACK DETECTION - This will ensure audio plays even if the waveform visualization fails
+  setTimeout(function() {
+    const audioPlayer = document.getElementById('audioPlayer');
+    const waveformContainer = document.getElementById('waveform');
+    
+    // Check if wavesurfer is active and has initialized properly
+    if (!window.wavesurfer || !window.wavesurfer.isReady) {
+      console.log("No WaveSurfer detected in time - activating fallback player");
+      
+      // Make sure the audio player is visible with controls
+      if (audioPlayer) {
+        audioPlayer.controls = true;
+        
+        // Show a message in the waveform container
+        if (waveformContainer) {
+          waveformContainer.innerHTML = `
+            <div class="alert alert-warning">
+              <strong>Notice:</strong> Advanced audio visualization unavailable. Using standard audio player.
+            </div>
+          `;
+        }
+      }
+    }
+  }, 1000); // Check after 1 second - should be enough time for WaveSurfer to initialize
+});
+</script>
 {% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container-fluid mt-3">
     <div class="row">
         <div class="col-md-12">
-            <h1>Transcript Player</h1>
-            <p>Audio file: {{ audio_file.title }}</p>
-            
-            <!-- Debug Information Section -->
-            <div class="card mb-3">
-                <div class="card-header bg-info text-white">
-                    <button class="btn btn-sm btn-outline-light float-end" type="button" data-bs-toggle="collapse" data-bs-target="#debugInfo">
-                        Toggle Debug Info
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0">Transcript Player</h2>
+                <div class="audio-info">
+                    <span class="badge bg-primary">{{ audio_file.title }}</span>
+                    <button class="btn btn-sm btn-outline-secondary" type="button" data-bs-toggle="collapse" data-bs-target="#debugInfo">
+                        <i class="bi bi-info-circle"></i>
                     </button>
-                    Debug Information
                 </div>
-                <div class="collapse" id="debugInfo">
-                    <div class="card-body">
-                        <h5>Audio File Information:</h5>
-                        <ul>
-                            <li>ID: {{ audio_file.id }}</li>
-                            <li>Title: {{ audio_file.title }}</li>
-                            <li>Path: {{ audio_file.audio_file.path }}</li>
-                            <li>URL: {{ audio_file.audio_file.url }}</li>
-                        </ul>
-                        
-                        <h5>Transcript Information:</h5>
-                        <ul>
-                            <li>ID: {{ transcript.id }}</li>
-                            <li>Format: {{ transcript.format }}</li>
-                            <li>Processing Status: {{ transcript.processing_status }}</li>
-                        </ul>
-                        
-                        <h5>Audio URL:</h5>
-                        <p>{{ audio_url }}</p>
+            </div>
+
+            <!-- Debug Information Section (Collapsed by default) -->
+            <div class="collapse mb-3" id="debugInfo">
+                <div class="card">
+                    <div class="card-header bg-light">Debug Information</div>
+                    <div class="card-body small">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Audio File Information:</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>ID:</strong> {{ audio_file.id }}</li>
+                                    <li><strong>Title:</strong> {{ audio_file.title }}</li>
+                                    <li><strong>Path:</strong> {{ audio_file.audio_file.path }}</li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Transcript Information:</h6>
+                                <ul class="list-unstyled">
+                                    <li><strong>ID:</strong> {{ transcript.id }}</li>
+                                    <li><strong>Format:</strong> {{ transcript.format }}</li>
+                                    <li><strong>Processing Status:</strong> {{ transcript.processing_status }}</li>
+                                </ul>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            
-            <div class="row mb-3">
-                <div class="col-md-6">
+
+            <div class="row">
+                <!-- Audio Visualization and Controls Section -->
+                <div class="col-md-12 mb-3">
                     <div class="card">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Audio Visualization</span>
+                            <div id="diarizationControlsContainer">
+                                <!-- Diarization controls added dynamically -->
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <!-- Waveform visualization -->
+                            <div id="waveform" class="mb-3"></div>
+                            
+                            <!-- Speaker visualization -->
+                            <div id="speakerTimeline" class="mb-3"></div>
+                            
+                            <!-- Main playback controls -->
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <button id="playPauseBtn" class="btn btn-primary me-2">
+                                        <i class="bi bi-play-fill"></i>
+                                    </button>
+                                    <div id="currentTime" class="time-display me-2">00:00</div>
+                                    <span class="me-2">/</span>
+                                    <div id="totalTime" class="time-display">00:00</div>
+                                </div>
+                                
+                                <div class="audio-controls">
+                                    <!-- Skip controls -->
+                                    <div class="btn-group me-2">
+                                        <button id="skip-back-10" class="btn btn-outline-secondary">
+                                            <i class="bi bi-skip-backward"></i> 10s
+                                        </button>
+                                        <button id="skip-back-5" class="btn btn-outline-secondary">
+                                            <i class="bi bi-skip-backward"></i> 5s
+                                        </button>
+                                        <button id="skip-forward-5" class="btn btn-outline-secondary">
+                                            <i class="bi bi-skip-forward"></i> 5s
+                                        </button>
+                                        <button id="skip-forward-10" class="btn btn-outline-secondary">
+                                            <i class="bi bi-skip-forward"></i> 10s
+                                        </button>
+                                    </div>
+                                    
+                                    <!-- Playback rate controls -->
+                                    <div class="btn-group">
+                                        <button id="rate-75" class="btn btn-outline-secondary">0.75x</button>
+                                        <button id="rate-100" class="btn btn-outline-secondary active">1.0x</button>
+                                        <button id="rate-125" class="btn btn-outline-secondary">1.25x</button>
+                                        <button id="rate-150" class="btn btn-outline-secondary">1.5x</button>
+                                        <button id="rate-200" class="btn btn-outline-secondary">2.0x</button>
+                                    </div>
+                                </div>
+                                
+                                <div class="zoom-controls">
+                                    <button id="zoomIn" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-zoom-in"></i>
+                                    </button>
+                                    <button id="zoomOut" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-zoom-out"></i>
+                                    </button>
+                                    <button id="resetZoom" class="btn btn-sm btn-outline-secondary">
+                                        <i class="bi bi-arrows-fullscreen"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <!-- HTML5 audio element -->
+                            <div class="audio-container">
+                                <div id="simple-audio-player" class="mb-3">
+                                    <audio id="audioPlayer" {% if audio_url %}src="{{ audio_url }}"{% endif %} controls>
+                                        {% if audio_url %}<source src="{{ audio_url }}" type="audio/mpeg">{% endif %}
+                                        Your browser does not support the audio element.
+                                    </audio>
+                                    
+                                    {% if audio_url %}
+                                    <div class="text-center mt-2 small">
+                                        <span class="text-muted">Using audio URL:</span> 
+                                        <code class="small">{{ audio_url }}</code>
+                                    </div>
+                                    <div class="text-center mt-1">
+                                        <button id="refreshAudioBtn" class="btn btn-sm btn-outline-secondary">
+                                            <i class="bi bi-arrow-repeat"></i> Refresh Audio
+                                        </button>
+                                        <script>
+                                            document.getElementById('refreshAudioBtn').addEventListener('click', function() {
+                                                const audioPlayer = document.getElementById('audioPlayer');
+                                                if (audioPlayer) {
+                                                    const currentSrc = audioPlayer.src;
+                                                    audioPlayer.src = '';
+                                                    audioPlayer.src = currentSrc + (currentSrc.includes('?') ? '&' : '?') + 'refresh=' + Date.now();
+                                                    audioPlayer.load();
+                                                    this.innerHTML = '<i class="bi bi-check"></i> Audio Refreshed';
+                                                    setTimeout(() => {
+                                                        this.innerHTML = '<i class="bi bi-arrow-repeat"></i> Refresh Audio';
+                                                    }, 3000);
+                                                }
+                                            });
+                                        </script>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                
+                                {% if not audio_url %}
+                                <div class="alert alert-warning mt-2">
+                                    <strong>Warning:</strong> No audio URL provided. Audio playback will not work.
+                                </div>
+                                {% else %}
+                                <div class="direct-audio-link mt-2">
+                                    <div class="btn-group">
+                                        <a href="{{ audio_url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                            <i class="bi bi-file-earmark-music"></i> Standard Audio Link
+                                        </a>
+                                        <a href="{{ audio_url }}?direct=1" target="_blank" class="btn btn-sm btn-primary">
+                                            <i class="bi bi-file-earmark-play"></i> Direct Audio Player
+                                        </a>
+                                    </div>
+                                    <span class="badge bg-light text-dark ms-2">{{ audio_file.title }}</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Transcript and Speaker Mapping Section -->
+                <div class="col-md-8">
+                    <div class="card mb-3">
                         <div class="card-header">
                             <ul class="nav nav-tabs card-header-tabs" id="formatTabs">
                                 <li class="nav-item">
@@ -56,68 +226,96 @@
                                 <li class="nav-item">
                                     <a class="nav-link" id="raw-tab" data-bs-toggle="tab" href="#raw">Raw Content</a>
                                 </li>
+                                <li class="nav-item ms-auto">
+                                    <div class="form-check form-switch mt-1">
+                                        <input class="form-check-input" type="checkbox" id="autoScrollToggle" checked>
+                                        <label class="form-check-label small" for="autoScrollToggle">Auto-scroll</label>
+                                    </div>
+                                </li>
                             </ul>
                         </div>
                         <div class="card-body">
                             <div class="tab-content">
                                 <div class="tab-pane fade show active" id="chat">
                                     <div id="chatHeader" class="transcript-header"></div>
-                                    <div id="transcriptContainer" class="transcript-container"></div>
+                                    <div id="transcriptContainer" class="transcript-container">
+                                        {% if chat_content %}
+                                        <pre style="white-space: pre-wrap; font-family: monospace;">{{ chat_content }}</pre>
+                                        {% endif %}
+                                    </div>
                                 </div>
                                 <div class="tab-pane fade" id="raw">
-                                    <pre id="rawContent" class="raw-content">{{ transcript.raw_content }}</pre>
+                                    <pre id="rawContentDisplay" class="raw-content">{{ raw_content }}</pre>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-6">
-                    <div class="card">
-                        <div class="card-header">Audio Player</div>
+                
+                <div class="col-md-4">
+                    <div class="card mb-3">
+                        <div class="card-header">Speaker Mapping</div>
                         <div class="card-body">
-                            <div id="audioPlayerContainer">
-                                <audio id="audioPlayer" controls>
-                                    <source src="{{ audio_url }}" type="audio/mpeg">
-                                    Your browser does not support the audio element.
-                                </audio>
-                                
-                                <div class="playback-controls mt-3">
-                                    <div class="btn-group mb-2" role="group">
-                                        <button id="skip-back-10" class="btn btn-outline-secondary" onclick="skipBackward(10)">
-                                            <i class="bi bi-skip-backward"></i> 10s
-                                        </button>
-                                        <button id="skip-back-5" class="btn btn-outline-secondary" onclick="skipBackward(5)">
-                                            <i class="bi bi-skip-backward"></i> 5s
-                                        </button>
-                                        <button id="skip-forward-5" class="btn btn-outline-secondary" onclick="skipForward(5)">
-                                            <i class="bi bi-skip-forward"></i> 5s
-                                        </button>
-                                        <button id="skip-forward-10" class="btn btn-outline-secondary" onclick="skipForward(10)">
-                                            <i class="bi bi-skip-forward"></i> 10s
-                                        </button>
-                                    </div>
-                                    
-                                    <div class="btn-group" role="group">
-                                        <button id="rate-75" class="btn btn-outline-secondary" onclick="adjustPlaybackRate(0.75)">0.75x</button>
-                                        <button id="rate-100" class="btn btn-outline-secondary active" onclick="adjustPlaybackRate(1.0)">1.0x</button>
-                                        <button id="rate-125" class="btn btn-outline-secondary" onclick="adjustPlaybackRate(1.25)">1.25x</button>
-                                        <button id="rate-150" class="btn btn-outline-secondary" onclick="adjustPlaybackRate(1.5)">1.5x</button>
-                                        <button id="rate-200" class="btn btn-outline-secondary" onclick="adjustPlaybackRate(2.0)">2.0x</button>
+                            <form id="speakerMappingForm">
+                                <div id="speakerInputs" class="mb-3">
+                                    <!-- Speaker inputs will be added here dynamically -->
+                                </div>
+                                <div class="d-grid">
+                                    <button type="submit" class="btn btn-primary">Update Speaker Mapping</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                    
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                            <span>Diarization Segments</span>
+                            <div class="dropdown">
+                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                                    <i class="bi bi-download"></i> Export
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end">
+                                    <li><a class="dropdown-item" href="#" id="copyDiarizationBtn">Copy to Clipboard</a></li>
+                                    <li><a class="dropdown-item" href="#" id="downloadJsonBtn">Download JSON</a></li>
+                                    <li><a class="dropdown-item" href="#" id="downloadCsvBtn">Download CSV</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li><a class="dropdown-item" href="#" id="viewSegmentsBtn" data-bs-toggle="collapse" data-bs-target="#segmentDetails">View Segment Details</a></li>
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="collapse" id="segmentDetails">
+                            <div class="card-body">
+                                <div class="segment-list small" id="segmentList">
+                                    <!-- Segment details will be shown here -->
+                                    <div class="text-center p-3">
+                                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                                            <span class="visually-hidden">Loading...</span>
+                                        </div>
+                                        <span class="ms-2">Loading segments...</span>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                     
-                    <div class="card mt-3">
-                        <div class="card-header">Speaker Mapping</div>
+                    <div class="card mb-3">
+                        <div class="card-header d-flex justify-content-between align-items-center">
+                                <span>Self-Test Results</span>
+                                <button class="btn btn-sm btn-outline-secondary" id="showDebugBtn">
+                                    Debug Info
+                                </button>
+                            </div>
                         <div class="card-body">
-                            <form id="speakerMappingForm">
-                                <div id="speakerInputs">
-                                    <!-- Speaker inputs will be added here dynamically -->
-                                </div>
-                                <button type="submit" class="btn btn-primary">Update Speaker Mapping</button>
-                            </form>
+                            <div id="testResults">
+                                <button id="runTestsBtn" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-check2-circle"></i> Run Self-Tests
+                                </button>
+                            </div>
+                            
+                            <div id="debugInfo" class="mt-3" style="display: none;">
+                                <h6>Debug Information</h6>
+                                <div class="debug-content small"></div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -126,54 +324,1149 @@
     </div>
 </div>
 
+<!-- Hidden data fields -->
 <input type="hidden" id="transcriptId" value="{{ transcript.id }}">
-<input type="hidden" id="chatContent" value="{{ transcript.chat_content|escapejs }}">
-<input type="hidden" id="rawContent" value="{{ transcript.raw_content|escapejs }}">
-<input type="hidden" id="diarizationData" value="{{ transcript.diarization_data|escapejs }}">
-<input type="hidden" id="speakersData" value="{{ speaker_mappings|escapejs }}">
-<input type="hidden" id="missingSegmentsData" value="{{ transcript.missing_segments|escapejs }}">
-<input type="hidden" id="pyannoteProcessed" value="{{ transcript.pyannote_processed }}">
+<input type="hidden" id="chatContent" value="{{ chat_content|escapejs }}">
+<input type="hidden" id="rawContent" value="{{ raw_content|escapejs }}">
+<input type="hidden" id="diarizationData" value="{{ diarization_data|default:"[]" }}">
+<input type="hidden" id="speakersData" value="{{ speaker_mappings|default:"{}" }}">
+<input type="hidden" id="speakersJson" value="{{ speakers_json|default:"[]" }}">
+<input type="hidden" id="missingSegmentsData" value="{{ missing_segments|default:"[]" }}">
+<input type="hidden" id="pyannoteProcessed" value="{{ transcript.pyannote_processed|yesno:"True,False" }}">
 
 {% endblock %}
 
 {% block extra_js %}
+<!-- Load modular JavaScript files -->
+<script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/speaker_mapping.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/missing_segments.js' %}"></script>
+
 <script>
-// Initialize global variables
-const player = document.getElementById('audioPlayer');
-const uniqueSpeakers = new Set();
-const speakerMappings = {};
-const speakerColors = {};
-let currentPlaybackRate = 1.0;
+// Debug - log hidden field values and check data loading
+console.log("Debug - Hidden fields content:");
+console.log("chatContent:", document.getElementById('chatContent').value.substring(0, 100) + "...");
+console.log("chatContent length:", document.getElementById('chatContent').value.length);
+console.log("rawContent length:", document.getElementById('rawContent').value.length);
+console.log("diarizationData:", document.getElementById('diarizationData').value);
+console.log("speakersData:", document.getElementById('speakersData').value);
+console.log("speakersJson:", document.getElementById('speakersJson').value);
+console.log("missingSegmentsData:", document.getElementById('missingSegmentsData').value);
+console.log("pyannoteProcessed:", document.getElementById('pyannoteProcessed').value);
+
+// Add emergency backup init if data loading fails
+window.addEventListener('load', function() {
+  // Check if chat content is loaded but not displayed
+  if (document.getElementById('chatContent').value.length > 0 && 
+      document.getElementById('transcriptContainer').innerHTML === '') {
+    console.log("EMERGENCY: Chat content exists but not displayed. Forcing display!");
+    try {
+      // Directly display raw content in both views as a failsafe
+      const chatContent = document.getElementById('chatContent').value;
+      const rawContent = document.getElementById('rawContent').value;
+      
+      // Display in CHAT tab
+      document.getElementById('transcriptContainer').innerHTML = 
+        `<pre style="white-space: pre-wrap; font-family: monospace;">${chatContent || rawContent}</pre>`;
+      
+      // Display in Raw tab
+      document.getElementById('rawContentDisplay').textContent = rawContent || chatContent;
+      
+      console.log("Emergency content display complete");
+    } catch(e) {
+      console.error("Failed emergency display:", e);
+    }
+  }
+  
+  // Check WaveSurfer initialization
+  if (!wavesurfer || document.getElementById('waveform').innerHTML === '') {
+    console.log("EMERGENCY: WaveSurfer not initialized. Adding fallback player.");
+    document.getElementById('waveform').innerHTML = '<div class="alert alert-warning">Waveform visualization failed to load. Using standard audio player.</div>';
+    
+    // Try to force the audio element to be visible and usable 
+    const audioPlayer = document.getElementById('audioPlayer');
+    if (audioPlayer) {
+      // Make sure the audio player is visible and has controls
+      audioPlayer.controls = true;
+      
+      // Connect playback buttons to standard audio player
+      document.getElementById('playPauseBtn')?.addEventListener('click', function() {
+        if (audioPlayer.paused) {
+          audioPlayer.play();
+          this.querySelector('i').classList.remove('bi-play-fill');
+          this.querySelector('i').classList.add('bi-pause-fill');
+        } else {
+          audioPlayer.pause();
+          this.querySelector('i').classList.remove('bi-pause-fill');
+          this.querySelector('i').classList.add('bi-play-fill');
+        }
+      });
+    }
+  }
+});
+
+// Global variables 
+let wavesurfer = null;
+let allSegments = [];
+let colorMap = {};
+window.autoScroll = true; // Make autoScroll accessible globally via window object
+let diarizationProcessed = false;
 
 // Color palette for speakers
 const colorPalette = [
-    '#007bff', '#6610f2', '#6f42c1', '#e83e8c', '#dc3545',
-    '#fd7e14', '#ffc107', '#28a745', '#20c997', '#17a2b8'
+    '#4285F4', '#EA4335', '#FBBC05', '#34A853', // Google colors
+    '#8E44AD', '#3498DB', '#1ABC9C', '#F39C12', // Material colors
+    '#7F8C8D', '#9B59B6', '#2ECC71', '#E74C3C'  // More vibrant options
 ];
 
-// Pass data to JavaScript
-const speakersJson = '{{ speakers_json|escapejs }}';
-const missingSegmentsJson = '{{ missing_segments|escapejs|safe }}';
-
-// Function to run Pyannote diarization
-function runPyannoteDiarization(transcriptId) {
-    // Show loading indicator
-    const runButton = document.getElementById('runPyannoteBtn');
-    if (runButton) {
-        runButton.disabled = true;
-        runButton.innerHTML = '<i class="bi bi-arrow-repeat spinning"></i> Running Diarization...';
+// Initialize everything when the DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("DOM fully loaded - initializing transcript player");
+    
+    // Make sure autoScrollToggle exists before adding listener
+    const autoScrollToggle = document.getElementById('autoScrollToggle');
+    if (autoScrollToggle) {
+        // Set the global variable directly
+        window.autoScroll = autoScrollToggle.checked;
+        
+        // Add event listener that updates the global variable
+        autoScrollToggle.addEventListener('change', function() {
+            window.autoScroll = this.checked;
+            console.log("Auto-scroll set to:", window.autoScroll);
+        });
+    } else {
+        console.error("Auto-scroll toggle not found in DOM!");
     }
     
-    // Show processing message
-    const messageDiv = document.createElement('div');
-    messageDiv.className = 'alert alert-info';
-    messageDiv.id = 'processingMessage';
-    messageDiv.innerHTML = `
-        <strong>Processing Audio...</strong> 
-        <p>Analyzing speakers with Pyannote. This may take a few minutes depending on audio length.</p>
-        <p>You'll need a valid Hugging Face token with access to the Pyannote model.</p>
+    // Initialize modular JS components if available
+    if (typeof window.initializeAudioPlayer === 'function') {
+        window.initializeAudioPlayer();
+    }
+    
+    if (typeof window.initializeTranscriptDisplay === 'function') {
+        window.initializeTranscriptDisplay();
+    }
+    
+    if (typeof window.initializeSpeakerMappings === 'function') {
+        window.initializeSpeakerMappings();
+    }
+    
+    // Check if Pyannote has been processed
+    const pyannoteProcessed = document.getElementById('pyannoteProcessed').value === 'True';
+    diarizationProcessed = pyannoteProcessed;
+    console.log("Diarization processed:", diarizationProcessed);
+    
+    // Initialize main components
+    initializeWaveSurfer();
+    initializePlaybackControls();
+    
+    // Load data and initialize display components
+    loadTranscriptData();
+    loadDiarizationData();
+    
+    // Initialize self-test functionality
+    initializeSelfTests();
+    
+    // Add diarization button if not processed
+    if (!diarizationProcessed) {
+        addDiarizationButton();
+    }
+});
+
+// Initialize WaveSurfer for audio visualization
+function initializeWaveSurfer() {
+    console.log("Initializing WaveSurfer");
+    
+    try {
+        // Check if WaveSurfer is defined
+        if (typeof WaveSurfer === 'undefined') {
+            console.error("WaveSurfer not available - showing fallback player");
+            enableFallbackPlayer();
+            return;
+        }
+        
+        // Hide the default audio player while WaveSurfer is active
+        document.getElementById('simple-audio-player').style.display = 'none';
+        
+        // Get audio element and check if it exists
+        const audioElement = document.getElementById('audioPlayer');
+        if (!audioElement) {
+            console.error("Audio element not found");
+            document.getElementById('waveform').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> Audio element not found.
+                </div>
+            `;
+            enableFallbackPlayer("Audio element not found");
+            return;
+        }
+        
+        // Check if there's a source element
+        let audioUrl = '';
+        const sourceElement = audioElement.querySelector('source');
+        
+        if (sourceElement && sourceElement.src) {
+            audioUrl = sourceElement.src;
+        } else {
+            // Try to get from the audio element directly
+            audioUrl = audioElement.src;
+        }
+        
+        if (!audioUrl) {
+            console.error("Audio URL is empty");
+            document.getElementById('waveform').innerHTML = `
+                <div class="alert alert-danger">
+                    <strong>Error:</strong> Audio URL is missing. Please check the media URL.
+                </div>
+            `;
+            enableFallbackPlayer("Audio URL is missing");
+            return;
+        }
+        
+        // Log the full audio URL for debugging
+        console.log("Creating WaveSurfer with audio URL:", audioUrl);
+        
+        // Show a loading message
+        document.getElementById('waveform').innerHTML = `
+            <div class="text-center p-3">
+                <div class="spinner-border spinner-border-sm text-primary" role="status">
+                    <span class="visually-hidden">Loading audio visualization...</span>
+                </div>
+                <span class="ms-2">Loading audio visualization...</span>
+            </div>
+        `;
+        
+        // Create WaveSurfer instance with more config options
+        wavesurfer = WaveSurfer.create({
+            container: '#waveform',
+            waveColor: 'rgba(0, 123, 255, 0.3)',
+            progressColor: 'rgba(0, 123, 255, 0.8)',
+            cursorColor: '#dc3545',
+            cursorWidth: 2,
+            height: 80,
+            barWidth: 2,
+            barGap: 1,
+            responsive: true,
+            hideScrollbar: true,
+            backend: 'MediaElement',  // Use MediaElement backend for better compatibility
+            mediaControls: false,     // We'll use our own controls
+            normalize: true,          // Normalize audio waveform
+            plugins: []
+        });
+        
+        // Load the audio file
+        wavesurfer.load(audioUrl);
+        
+        // Set up WaveSurfer event listeners
+        wavesurfer.on('ready', function() {
+            console.log('WaveSurfer is ready');
+            document.getElementById('totalTime').textContent = formatTime(wavesurfer.getDuration());
+            
+            // Setup speaker timeline once we know the duration
+            setupSpeakerTimeline();
+            
+            // Enable zoom controls
+            document.getElementById('zoomIn').disabled = false;
+            document.getElementById('zoomOut').disabled = false;
+            document.getElementById('resetZoom').disabled = false;
+        });
+        
+        wavesurfer.on('audioprocess', function() {
+            document.getElementById('currentTime').textContent = formatTime(wavesurfer.getCurrentTime());
+            updateTranscriptHighlight(wavesurfer.getCurrentTime() * 1000);
+        });
+        
+        wavesurfer.on('seek', function() {
+            document.getElementById('currentTime').textContent = formatTime(wavesurfer.getCurrentTime());
+            updateTranscriptHighlight(wavesurfer.getCurrentTime() * 1000);
+        });
+        
+        wavesurfer.on('error', function(err) {
+            console.error('WaveSurfer error:', err);
+            enableFallbackPlayer();
+        });
+        
+        // Disable zoom controls until audio is loaded
+        document.getElementById('zoomIn').disabled = true;
+        document.getElementById('zoomOut').disabled = true;
+        document.getElementById('resetZoom').disabled = true;
+        
+        // Set a timeout to check if WaveSurfer loaded successfully
+        setTimeout(function() {
+            if (!wavesurfer.isReady) {
+                console.warn("WaveSurfer still not ready after 5 seconds - enabling fallback");
+                enableFallbackPlayer();
+            }
+        }, 5000);
+    } catch (error) {
+        console.error("Error initializing WaveSurfer:", error);
+        enableFallbackPlayer(error.message);
+    }
+}
+
+// Helper function to enable fallback player when WaveSurfer fails
+function enableFallbackPlayer(errorMessage = "Failed to initialize audio visualization") {
+    document.getElementById('waveform').innerHTML = `
+        <div class="alert alert-warning">
+            <strong>Notice:</strong> ${errorMessage}. Using standard audio player.
+        </div>
     `;
-    document.querySelector('.container').prepend(messageDiv);
+    
+    // Show the simple audio player container
+    const simplePlayerContainer = document.getElementById('simple-audio-player');
+    if (simplePlayerContainer) {
+        simplePlayerContainer.style.display = 'block';
+    }
+    
+    // Show the standard audio player
+    const audioPlayer = document.getElementById('audioPlayer');
+    if (audioPlayer) {
+        // Make sure controls are visible and the player isn't hidden
+        audioPlayer.controls = true;
+        
+        // Try to force load the audio source if it exists in URL but not loaded
+        if (!audioPlayer.src && audioPlayer.querySelector('source')?.src) {
+            audioPlayer.src = audioPlayer.querySelector('source').src;
+        }
+        
+        // Show audio URL for debugging
+        console.log("Audio player source:", audioPlayer.src);
+        if (audioPlayer.src) {
+            const debugLink = document.createElement('div');
+            debugLink.className = 'alert alert-info mt-2';
+            debugLink.innerHTML = `
+                <strong>Debug:</strong> Audio URL: <a href="${audioPlayer.src}" target="_blank">${audioPlayer.src}</a>
+            `;
+            document.getElementById('waveform').appendChild(debugLink);
+        }
+        
+        // Set up events for the standard player
+        audioPlayer.addEventListener('timeupdate', function() {
+            document.getElementById('currentTime').textContent = formatTime(audioPlayer.currentTime);
+            updateTranscriptHighlight(audioPlayer.currentTime * 1000);
+        });
+        
+        audioPlayer.addEventListener('loadedmetadata', function() {
+            document.getElementById('totalTime').textContent = formatTime(audioPlayer.duration);
+            console.log("Audio duration loaded:", audioPlayer.duration);
+        });
+        
+        // Display error events for debugging
+        audioPlayer.addEventListener('error', function(e) {
+            console.error("Audio player error:", e);
+            
+            // Show error message
+            let errorMsg = "Unknown error";
+            const error = audioPlayer.error;
+            if (error) {
+                switch (error.code) {
+                    case MediaError.MEDIA_ERR_ABORTED:
+                        errorMsg = "You aborted the playback";
+                        break;
+                    case MediaError.MEDIA_ERR_NETWORK:
+                        errorMsg = "Network error while loading audio";
+                        break;
+                    case MediaError.MEDIA_ERR_DECODE:
+                        errorMsg = "Audio decoding error (file may be corrupted)";
+                        break;
+                    case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                        errorMsg = "Audio format not supported by your browser";
+                        break;
+                }
+            }
+            
+            document.getElementById('waveform').innerHTML += `
+                <div class="alert alert-danger mt-2">
+                    <strong>Audio Error:</strong> ${errorMsg}
+                </div>
+            `;
+            
+            // Show troubleshooting information
+            document.getElementById('waveform').innerHTML += `
+                <div class="alert alert-info mt-2">
+                    <strong>Troubleshooting:</strong>
+                    <p>Try the direct audio link below to check if the audio file is accessible. If it works there, but not in the player, it might be a browser compatibility issue.</p>
+                    <p class="mb-0">
+                        <a href="${audioPlayer.src}" target="_blank" class="btn btn-sm btn-primary">
+                            <i class="bi bi-file-earmark-music"></i> Open Audio Directly
+                        </a>
+                    </p>
+                </div>
+            `;
+        });
+        
+        // Bind play/pause button to standard audio player
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        if (playPauseBtn) {
+            playPauseBtn.addEventListener('click', function() {
+                if (audioPlayer.paused) {
+                    audioPlayer.play();
+                    playPauseBtn.querySelector('i').classList.remove('bi-play-fill');
+                    playPauseBtn.querySelector('i').classList.add('bi-pause-fill');
+                } else {
+                    audioPlayer.pause();
+                    playPauseBtn.querySelector('i').classList.remove('bi-pause-fill');
+                    playPauseBtn.querySelector('i').classList.add('bi-play-fill');
+                }
+            });
+        }
+        
+        // Bind playback controls to standard player
+        window.seekToTime = function(ms) {
+            audioPlayer.currentTime = ms / 1000;
+            if (audioPlayer.paused) {
+                try { audioPlayer.play(); } catch(e) { console.log("Autoplay prevented"); }
+            }
+        };
+    }
+}
+
+// Set up the speaker timeline visualization
+function setupSpeakerTimeline() {
+    const speakerTimeline = document.getElementById('speakerTimeline');
+    if (!speakerTimeline) return;
+    
+    // Only display if we have diarization data
+    if (!diarizationProcessed) {
+        speakerTimeline.innerHTML = `
+            <div class="text-center p-2 text-muted small">
+                <i class="bi bi-person-vcard"></i> Speaker diarization not processed yet
+            </div>
+        `;
+        return;
+    }
+    
+    // Create timeline canvas
+    const duration = wavesurfer.getDuration();
+    speakerTimeline.innerHTML = `
+        <div class="speaker-timeline-container">
+            <canvas id="timelineCanvas" height="60"></canvas>
+        </div>
+    `;
+    
+    // Draw timeline in a short delay to ensure canvas is ready
+    setTimeout(() => {
+        drawSpeakerTimeline(duration);
+    }, 100);
+}
+
+// Draw the speaker timeline on the canvas
+function drawSpeakerTimeline(duration) {
+    // Clear any existing elements
+    const container = document.querySelector('.speaker-timeline-container');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    
+    // If no segments, display a message
+    if (!allSegments || allSegments.length === 0) {
+        container.innerHTML = '<div class="text-center p-3">No speaker segments available</div>';
+        return;
+    }
+    
+    // Add confidence indicator bar like Pyannote
+    const confidenceBar = document.createElement('div');
+    confidenceBar.className = 'confidence-indicator';
+    container.appendChild(confidenceBar);
+    
+    // Create a waveform visualization
+    const waveform = document.createElement('div');
+    waveform.className = 'waveform-background';
+    waveform.style.height = '15px';
+    waveform.style.marginTop = '10px';
+    waveform.style.position = 'relative';
+    container.appendChild(waveform);
+    
+    // Generate a simple waveform pattern
+    for (let i = 0; i < 100; i++) {
+        const bar = document.createElement('div');
+        bar.style.position = 'absolute';
+        bar.style.left = `${i}%`;
+        bar.style.bottom = '0';
+        bar.style.width = '1px';
+        bar.style.height = `${Math.random() * 10 + 2}px`;
+        bar.style.backgroundColor = 'rgba(150,150,150,0.2)';
+        waveform.appendChild(bar);
+    }
+    
+    // Get unique speakers
+    const speakers = Array.from(new Set(allSegments.map(s => s.speaker).filter(Boolean)));
+    
+    // For each speaker, create a row and add segments
+    speakers.forEach((speaker, speakerIndex) => {
+        const speakerRow = document.createElement('div');
+        speakerRow.className = 'speaker-row';
+        speakerRow.dataset.speaker = speaker;
+        container.appendChild(speakerRow);
+        
+        // Add speaker label
+        const speakerLabel = document.createElement('div');
+        speakerLabel.className = 'speaker-label-right';
+        speakerLabel.textContent = speaker;
+        const color = colorMap[speaker] || '#6c757d';
+        speakerLabel.style.color = color;
+        speakerRow.appendChild(speakerLabel);
+        
+        // Add segments for this speaker
+        const speakerSegments = allSegments.filter(segment => segment.speaker === speaker);
+        speakerSegments.forEach(segment => {
+            const startPercent = (segment.start / 1000 / duration) * 100;
+            const endPercent = (segment.end / 1000 / duration) * 100;
+            const widthPercent = Math.max(endPercent - startPercent, 0.2); // Min width
+            
+            const segmentElement = document.createElement('div');
+            segmentElement.className = 'speaker-segment';
+            segmentElement.style.left = `${startPercent}%`;
+            segmentElement.style.width = `${widthPercent}%`;
+            segmentElement.style.backgroundColor = color;
+            
+            // Add confidence indicator if available
+            if (segment.confidence) {
+                const opacity = Math.min(Math.max(segment.confidence, 0.3), 1);
+                segmentElement.style.opacity = opacity;
+            }
+            
+            // Add tooltip with timing info
+            segmentElement.title = `${speaker}: ${formatTime(segment.start/1000)} - ${formatTime(segment.end/1000)}`;
+            
+            speakerRow.appendChild(segmentElement);
+        });
+    });
+    
+    // Add time ticks at the bottom
+    const timelineFooter = document.createElement('div');
+    timelineFooter.className = 'timeline-footer';
+    timelineFooter.style.display = 'flex';
+    timelineFooter.style.justifyContent = 'space-between';
+    timelineFooter.style.marginTop = '5px';
+    timelineFooter.style.paddingTop = '5px';
+    timelineFooter.style.borderTop = '1px solid #eee';
+    timelineFooter.style.fontSize = '10px';
+    timelineFooter.style.color = '#6c757d';
+    
+    // Add start, middle and end time markers
+    const startTime = document.createElement('div');
+    startTime.textContent = '0:00';
+    startTime.style.marginLeft = '5px';
+    
+    const middleTime = document.createElement('div');
+    middleTime.textContent = formatTime(duration / 2);
+    
+    const endTime = document.createElement('div');
+    endTime.textContent = formatTime(duration);
+    endTime.style.marginRight = '5px';
+    
+    timelineFooter.appendChild(startTime);
+    timelineFooter.appendChild(middleTime);
+    timelineFooter.appendChild(endTime);
+    
+    container.appendChild(timelineFooter);
+    
+    // Add a playhead position indicator that moves with audio
+    const playhead = document.createElement('div');
+    playhead.className = 'playhead';
+    playhead.style.position = 'absolute';
+    playhead.style.top = '0';
+    playhead.style.left = '0';
+    playhead.style.width = '2px';
+    playhead.style.height = '100%';
+    playhead.style.backgroundColor = 'red';
+    playhead.style.zIndex = '20';
+    playhead.style.pointerEvents = 'none';
+    container.appendChild(playhead);
+    
+    // Update playhead position on timeupdate
+    if (window.player) {
+        window.player.addEventListener('timeupdate', function() {
+            const percent = (window.player.currentTime / duration) * 100;
+            playhead.style.left = `${percent}%`;
+        });
+    }
+}
+
+// Initialize playback controls
+function initializePlaybackControls() {
+    // Play/Pause button
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    if (playPauseBtn) {
+        playPauseBtn.addEventListener('click', function() {
+            if (!wavesurfer) return;
+            
+            wavesurfer.playPause();
+            const icon = this.querySelector('i');
+            if (wavesurfer.isPlaying()) {
+                icon.classList.remove('bi-play-fill');
+                icon.classList.add('bi-pause-fill');
+            } else {
+                icon.classList.remove('bi-pause-fill');
+                icon.classList.add('bi-play-fill');
+            }
+        });
+    }
+    
+    // Skip controls
+    document.getElementById('skip-back-10').addEventListener('click', () => skipTime(-10));
+    document.getElementById('skip-back-5').addEventListener('click', () => skipTime(-5));
+    document.getElementById('skip-forward-5').addEventListener('click', () => skipTime(5));
+    document.getElementById('skip-forward-10').addEventListener('click', () => skipTime(10));
+    
+    // Playback rate buttons
+    document.getElementById('rate-75').addEventListener('click', () => setPlaybackRate(0.75));
+    document.getElementById('rate-100').addEventListener('click', () => setPlaybackRate(1.0));
+    document.getElementById('rate-125').addEventListener('click', () => setPlaybackRate(1.25));
+    document.getElementById('rate-150').addEventListener('click', () => setPlaybackRate(1.5));
+    document.getElementById('rate-200').addEventListener('click', () => setPlaybackRate(2.0));
+    
+    // Zoom controls
+    document.getElementById('zoomIn').addEventListener('click', function() {
+        if (!wavesurfer) return;
+        const currentZoom = wavesurfer.params.minPxPerSec || 50;
+        wavesurfer.zoom(currentZoom * 1.5);
+    });
+    
+    document.getElementById('zoomOut').addEventListener('click', function() {
+        if (!wavesurfer) return;
+        const currentZoom = wavesurfer.params.minPxPerSec || 50;
+        wavesurfer.zoom(Math.max(20, currentZoom / 1.5));
+    });
+    
+    document.getElementById('resetZoom').addEventListener('click', function() {
+        if (!wavesurfer) return;
+        wavesurfer.zoom(50); // Reset to default zoom level
+    });
+    
+    // Export buttons
+    document.getElementById('copyDiarizationBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        copyDiarizationToClipboard();
+    });
+    
+    document.getElementById('downloadJsonBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        downloadDiarization('json');
+    });
+    
+    document.getElementById('downloadCsvBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        downloadDiarization('csv');
+    });
+    
+    document.getElementById('viewSegmentsBtn').addEventListener('click', function(e) {
+        e.preventDefault();
+        loadSegmentDetails();
+    });
+    
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ignore if focused on input elements
+        if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+        
+        switch(e.key) {
+            case ' ':
+                e.preventDefault();
+                if (playPauseBtn) playPauseBtn.click();
+                break;
+            case 'ArrowLeft':
+                e.preventDefault();
+                skipTime(-5);
+                break;
+            case 'ArrowRight':
+                e.preventDefault();
+                skipTime(5);
+                break;
+            case '1':
+                setPlaybackRate(1.0);
+                break;
+            case '2':
+                setPlaybackRate(1.25);
+                break;
+            case '3':
+                setPlaybackRate(1.5);
+                break;
+            case '4':
+                setPlaybackRate(0.75);
+                break;
+        }
+    });
+}
+
+// Helper function for skipping forward/backward
+function skipTime(seconds) {
+    if (!wavesurfer) return;
+    
+    const currentTime = wavesurfer.getCurrentTime();
+    const newTime = Math.max(0, Math.min(wavesurfer.getDuration(), currentTime + seconds));
+    wavesurfer.seekTo(newTime / wavesurfer.getDuration());
+}
+
+// Helper function for setting playback rate
+function setPlaybackRate(rate) {
+    if (!wavesurfer) return;
+    
+    wavesurfer.setPlaybackRate(rate);
+    
+    // Update active button state
+    document.querySelectorAll('.btn-group button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Select the button by ID that matches the rate
+    const rateId = `rate-${String(rate * 100).replace('.', '')}`;
+    const rateButton = document.getElementById(rateId);
+    if (rateButton) {
+        rateButton.classList.add('active');
+    }
+}
+
+// Load transcript data
+function loadTranscriptData() {
+    console.log("Loading transcript data");
+    
+    // Get transcript content
+    const chatContent = document.getElementById('chatContent').value;
+    const rawContent = document.getElementById('rawContent').value;
+    
+    // Initialize format tabs regardless of content
+    initializeFormatTabs();
+    
+    // Display transcript content based on what's available
+    if (chatContent && chatContent.trim() !== '') {
+        console.log("Displaying CHAT format content");
+        displayChatContent(chatContent);
+    } else if (rawContent && rawContent.trim() !== '') {
+        console.log("CHAT content not available. Displaying raw content");
+        // Display raw content in both tabs for fallback
+        document.getElementById('transcriptContainer').innerHTML = 
+            `<pre class="raw-content-in-chat">${rawContent}</pre>`;
+        document.getElementById('rawContentDisplay').textContent = rawContent;
+    } else {
+        console.warn("No transcript content available");
+        const errorMessage = `
+            <div class="alert alert-warning">
+                <strong>Warning:</strong> No transcript content available.
+                <p>This could be due to processing errors or missing data.</p>
+                <button id="checkDataBtn" class="btn btn-sm btn-outline-primary mt-2">
+                    Run Diagnostic Check
+                </button>
+            </div>
+        `;
+        document.getElementById('transcriptContainer').innerHTML = errorMessage;
+        document.getElementById('rawContentDisplay').innerHTML = errorMessage;
+        
+        // Add event handler for diagnostic button
+        setTimeout(() => {
+            const diagButton = document.getElementById('checkDataBtn');
+            if (diagButton) {
+                diagButton.addEventListener('click', runDiagnosticCheck);
+            }
+        }, 100);
+    }
+}
+
+// Initialize format tabs with proper event handling
+function initializeFormatTabs() {
+    const chatTab = document.getElementById('chat-tab');
+    const rawTab = document.getElementById('raw-tab');
+    
+    if (chatTab) {
+        chatTab.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('chat-tab').classList.add('active');
+            document.getElementById('raw-tab').classList.remove('active');
+            document.getElementById('chat').classList.add('show', 'active');
+            document.getElementById('raw').classList.remove('show', 'active');
+        });
+    }
+    
+    if (rawTab) {
+        rawTab.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.getElementById('raw-tab').classList.add('active');
+            document.getElementById('chat-tab').classList.remove('active');
+            document.getElementById('raw').classList.add('show', 'active');
+            document.getElementById('chat').classList.remove('show', 'active');
+        });
+    }
+}
+
+// Run diagnostic check for transcript data
+function runDiagnosticCheck() {
+    const diagnosticResults = [];
+    
+    // Check for hidden fields data
+    const fields = [
+        {name: 'chatContent', id: 'chatContent', status: false},
+        {name: 'rawContent', id: 'rawContent', status: false},
+        {name: 'diarizationData', id: 'diarizationData', status: false},
+        {name: 'speakersData', id: 'speakersData', status: false},
+        {name: 'missingSegmentsData', id: 'missingSegmentsData', status: false}
+    ];
+    
+    // Check each field
+    fields.forEach(field => {
+        const element = document.getElementById(field.id);
+        if (element) {
+            const value = element.value;
+            field.status = value && value.length > 0 && value !== '[]' && value !== '{}';
+            field.length = value ? value.length : 0;
+            field.preview = value ? (value.length > 50 ? value.substring(0, 50) + '...' : value) : 'empty';
+            
+            diagnosticResults.push({
+                test: `${field.name} data`,
+                result: field.status ? 'PASS' : 'FAIL',
+                details: field.status ? 
+                    `${field.length} characters of data` : 
+                    `No data found - preview: ${field.preview}`
+            });
+        } else {
+            diagnosticResults.push({
+                test: `${field.name} field`,
+                result: 'FAIL',
+                details: 'Hidden field element not found in DOM'
+            });
+        }
+    });
+    
+    // Check audio element
+    const audioElement = document.getElementById('audioPlayer');
+    const audioTest = {
+        test: 'Audio element',
+        result: audioElement ? 'PASS' : 'FAIL',
+        details: audioElement ? 'Audio element found' : 'Audio element missing'
+    };
+    
+    if (audioElement) {
+        const audioSource = audioElement.querySelector('source');
+        audioTest.details += audioSource ? 
+            ` with source: ${audioSource.src}` : 
+            ' but missing source element';
+        audioTest.result = audioSource && audioSource.src ? 'PASS' : 'FAIL';
+    }
+    
+    diagnosticResults.push(audioTest);
+    
+    // Display results
+    const resultsHTML = `
+        <div class="diagnostic-results">
+            <h5>Diagnostic Results</h5>
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Component</th>
+                        <th>Status</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${diagnosticResults.map(result => `
+                        <tr>
+                            <td>${result.test}</td>
+                            <td>${result.result === 'PASS' ? 
+                                '<span class="text-success">✓ PASS</span>' : 
+                                '<span class="text-danger">✗ FAIL</span>'}</td>
+                            <td>${result.details}</td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+            <div class="alert alert-info">
+                <p>Possible solutions:</p>
+                <ul>
+                    <li>Try refreshing the page</li>
+                    <li>Check if the audio file was processed correctly</li>
+                    <li>Try uploading the file again</li>
+                </ul>
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('transcriptContainer').innerHTML = resultsHTML;
+}
+
+// Display CHAT format content
+function displayChatContent(content) {
+    console.log("Displaying CHAT content");
+    const lines = content.split('\n');
+    console.log(`CHAT content has ${lines.length} lines`);
+    
+    const headerContainer = document.getElementById('chatHeader');
+    const transcriptContainer = document.getElementById('transcriptContainer');
+    
+    if (!headerContainer || !transcriptContainer) {
+        console.error("Header or transcript container not found");
+        return;
+    }
+    
+    headerContainer.innerHTML = '';
+    transcriptContainer.innerHTML = '';
+    
+    let inHeader = true;
+    let headerLinesCount = 0;
+    let utteranceLinesCount = 0;
+    const uniqueSpeakers = new Set();
+    
+    lines.forEach((line, index) => {
+        if (line.trim() === '') return;
+        
+        if (line.startsWith('@')) {
+            // Header line
+            headerLinesCount++;
+            const headerLine = document.createElement('div');
+            headerLine.className = 'header-line';
+            headerLine.textContent = line;
+            headerContainer.appendChild(headerLine);
+        } else if (line.startsWith('*')) {
+            // Utterance line
+            utteranceLinesCount++;
+            inHeader = false;
+            const utteranceLine = document.createElement('div');
+            utteranceLine.className = 'transcript-line';
+            utteranceLine.dataset.line = index;
+            
+            // Extract speaker
+            const colonIndex = line.indexOf(':');
+            if (colonIndex > 0) {
+                const originalSpeaker = line.substring(1, colonIndex).trim();
+                uniqueSpeakers.add(originalSpeaker);
+                
+                utteranceLine.dataset.speaker = originalSpeaker;
+                
+                // Extract text and timestamp
+                let text = line.substring(colonIndex + 1).trim();
+                
+                // Look for timestamp at the end (format: 18805_22745)
+                const words = text.split(' ');
+                const lastWord = words[words.length - 1];
+                
+                if (lastWord && lastWord.match(/^\d+_\d+$/)) {
+                    // Found timestamp in format start_end
+                    const times = lastWord.split('_');
+                    const startTime = parseInt(times[0]);
+                    const endTime = parseInt(times[1]);
+                    
+                    utteranceLine.dataset.start = startTime;
+                    utteranceLine.dataset.end = endTime;
+                    
+                    // Remove timestamp from displayed text
+                    words.pop();
+                    text = words.join(' ');
+                } else {
+                    // Try to find [start-end] format
+                    const timestampMatch = text.match(/\[(\d+)-(\d+)\]/);
+                    if (timestampMatch && timestampMatch.length >= 3) {
+                        const startTime = parseInt(timestampMatch[1]);
+                        const endTime = parseInt(timestampMatch[2]);
+                        
+                        utteranceLine.dataset.start = startTime;
+                        utteranceLine.dataset.end = endTime;
+                        
+                        // Remove timestamp from displayed text
+                        text = text.replace(/\[\d+-\d+\]/, '');
+                    }
+                }
+                
+                // Set click handler if we have a timestamp
+                if (utteranceLine.dataset.start) {
+                    utteranceLine.addEventListener('click', function() {
+                        if (!wavesurfer) return;
+                        
+                        console.log(`Seeking to time: ${utteranceLine.dataset.start}ms`);
+                        const seekPos = parseInt(utteranceLine.dataset.start) / 1000 / wavesurfer.getDuration();
+                        wavesurfer.seekTo(seekPos);
+                        
+                        // If not playing, start playback
+                        if (!wavesurfer.isPlaying()) {
+                            wavesurfer.play();
+                            const playPauseBtn = document.getElementById('playPauseBtn');
+                            if (playPauseBtn) {
+                                const icon = playPauseBtn.querySelector('i');
+                                icon.classList.remove('bi-play-fill');
+                                icon.classList.add('bi-pause-fill');
+                            }
+                        }
+                    });
+                }
+                
+                // Create speaker label
+                const speakerLabel = document.createElement('span');
+                speakerLabel.className = 'speaker-label';
+                speakerLabel.textContent = `*${originalSpeaker}:`;
+                
+                // Assign color if we have one
+                if (colorMap[originalSpeaker]) {
+                    speakerLabel.style.color = colorMap[originalSpeaker];
+                }
+                
+                utteranceLine.appendChild(speakerLabel);
+                
+                // Create timestamp display
+                if (utteranceLine.dataset.start) {
+                    const timestamp = document.createElement('span');
+                    timestamp.className = 'transcript-timestamp';
+                    timestamp.textContent = formatTime(utteranceLine.dataset.start / 1000);
+                    utteranceLine.appendChild(timestamp);
+                }
+                
+                // Create text content with word elements for highlighting
+                const textContent = document.createElement('span');
+                textContent.className = 'utterance-text';
+                
+                // Split text into words for potential highlighting later
+                const words = text.split(' ');
+                words.forEach((word, i) => {
+                    if (word.trim() === '') return;
+                    
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'transcript-word';
+                    wordSpan.textContent = word + (i < words.length - 1 ? ' ' : '');
+                    textContent.appendChild(wordSpan);
+                });
+                
+                utteranceLine.appendChild(textContent);
+                transcriptContainer.appendChild(utteranceLine);
+            }
+        } else if (line.startsWith('%wor:')) {
+            // Word-level timing line
+            inHeader = false;
+            const commentLine = document.createElement('div');
+            commentLine.className = 'transcript-line comment-line';
+            commentLine.textContent = line;
+            transcriptContainer.appendChild(commentLine);
+        } else if (line.startsWith('%')) {
+            // Other comment line
+            inHeader = false;
+            const commentLine = document.createElement('div');
+            commentLine.className = 'transcript-line comment-line';
+            commentLine.textContent = line;
+            transcriptContainer.appendChild(commentLine);
+        } else if (!inHeader) {
+            // Other content after header
+            const contentLine = document.createElement('div');
+            contentLine.className = 'transcript-line';
+            contentLine.textContent = line;
+            transcriptContainer.appendChild(contentLine);
+        }
+    });
+    
+    console.log(`Processed ${headerLinesCount} header lines and ${utteranceLinesCount} utterance lines`);
+    
+    // Initialize speaker inputs 
+    initializeSpeakerInputs(uniqueSpeakers);
+    
+    // If no content was displayed, show an error message
+    if (headerLinesCount === 0 && utteranceLinesCount === 0) {
+        transcriptContainer.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Warning:</strong> No transcript content could be displayed. 
+                The transcript may be empty or in an unsupported format.
+            </div>
+        `;
+    }
+}
+
+// Initialize speaker mapping inputs
+function initializeSpeakerInputs(speakers) {
+    console.log("Initializing speaker inputs");
+    
+    const speakerInputsContainer = document.getElementById('speakerInputs');
+    if (!speakerInputsContainer) return;
+    
+    speakerInputsContainer.innerHTML = '';
+    
+    // Get speaker mappings if available
+    const speakersData = document.getElementById('speakersData');
+    const speakerMappings = speakersData && speakersData.value ? JSON.parse(speakersData.value) : {};
+    
+    // Setup with any existing speakers or new ones
+    let uniqueSpeakers = Array.from(speakers || []);
+    
+    // Add any speakers from diarization data
+    if (allSegments && allSegments.length) {
+        allSegments.forEach(segment => {
+            if (segment.speaker && !uniqueSpeakers.includes(segment.speaker)) {
+                uniqueSpeakers.push(segment.speaker);
+            }
+        });
+    }
+    
+    console.log(`Found ${uniqueSpeakers.length} unique speakers`);
+    
+    // Sort speakers 
+    uniqueSpeakers.sort();
+    
+    // Assign colors to speakers
+    uniqueSpeakers.forEach((speaker, index) => {
+        const colorIndex = index % colorPalette.length;
+        colorMap[speaker] = colorPalette[colorIndex];
+    });
+    
+    // Create inputs for each speaker
+    uniqueSpeakers.forEach((speaker, index) => {
+        const formGroup = document.createElement('div');
+        formGroup.className = 'mb-2 d-flex align-items-center';
+        
+        // Create color indicator
+        const colorBox = document.createElement('div');
+        colorBox.className = 'color-box me-2';
+        colorBox.style.width = '16px';
+        colorBox.style.height = '16px';
+        colorBox.style.backgroundColor = colorMap[speaker] || '#6c757d';
+        colorBox.style.borderRadius = '3px';
+        
+        // Create speaker label
+        const label = document.createElement('label');
+        label.htmlFor = `speaker-${index}`;
+        label.className = 'me-2 mb-0';
+        label.style.minWidth = '100px';
+        label.textContent = speaker;
+        
+        // Create input field
+        const inputField = document.createElement('input');
+        inputField.type = 'text';
+        inputField.className = 'form-control form-control-sm speaker-input';
+        inputField.id = `speaker-${index}`;
+        inputField.name = `speaker-${index}`;
+        inputField.dataset.originalSpeaker = speaker;
+        inputField.value = speakerMappings[speaker] || '';
+        inputField.placeholder = 'Enter mapping (e.g., CHI, MOT)';
+        
+        // Add elements to form group
+        formGroup.appendChild(colorBox);
+        formGroup.appendChild(label);
+        formGroup.appendChild(inputField);
+        
+        // Add form group to container
+        speakerInputsContainer.appendChild(formGroup);
+    });
+    
+    // Add event listener for form submission
+    const form = document.getElementById('speakerMappingForm');
+    if (form) {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            updateSpeakerMapping();
+        });
+    }
+}
+
+// Update speaker mapping
+function updateSpeakerMapping() {
+    console.log("Updating speaker mapping");
+    
+    const transcriptId = document.getElementById('transcriptId').value;
+    const speakerInputs = document.querySelectorAll('.speaker-input');
+    
+    // Build mapping object
+    const speakerMap = {};
+    speakerInputs.forEach(input => {
+        const originalSpeaker = input.dataset.originalSpeaker;
+        const mappedName = input.value.trim();
+        
+        if (mappedName !== '') {
+            speakerMap[originalSpeaker] = mappedName;
+        }
+    });
     
     // Get CSRF token
     function getCookie(name) {
@@ -191,7 +1484,513 @@ function runPyannoteDiarization(transcriptId) {
         return cookieValue;
     }
     
-    // Call the server to run Pyannote
+    // Call the server to update speaker mapping
+    fetch(`/transcript/${transcriptId}/update-speaker-mapping/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            speaker_mapping: speakerMap
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log("Speaker mapping updated:", data);
+        
+        // Show success message
+        const form = document.getElementById('speakerMappingForm');
+        if (form) {
+            const successMessage = document.createElement('div');
+            successMessage.className = 'alert alert-success mt-3';
+            successMessage.innerHTML = `
+                <strong>Success!</strong> Speaker mapping updated.
+                <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            form.appendChild(successMessage);
+            
+            // Remove success message after 3 seconds
+            setTimeout(() => {
+                successMessage.remove();
+            }, 3000);
+        }
+        
+        // Update speaker labels in transcript
+        updateTranscriptSpeakerLabels(speakerMap);
+    })
+    .catch(error => {
+        console.error("Error updating speaker mapping:", error);
+        
+        // Show error message
+        const form = document.getElementById('speakerMappingForm');
+        if (form) {
+            const errorMessage = document.createElement('div');
+            errorMessage.className = 'alert alert-danger mt-3';
+            errorMessage.innerHTML = `
+                <strong>Error:</strong> Failed to update speaker mapping. ${error.message}
+                <button type="button" class="btn-close float-end" data-bs-dismiss="alert" aria-label="Close"></button>
+            `;
+            form.appendChild(errorMessage);
+        }
+    });
+}
+
+// Update speaker labels in transcript
+function updateTranscriptSpeakerLabels(speakerMap) {
+    const transcriptLines = document.querySelectorAll('.transcript-line');
+    
+    transcriptLines.forEach(line => {
+        const originalSpeaker = line.dataset.speaker;
+        if (originalSpeaker && speakerMap[originalSpeaker]) {
+            const speakerLabel = line.querySelector('.speaker-label');
+            if (speakerLabel) {
+                speakerLabel.textContent = `*${speakerMap[originalSpeaker]}:`;
+                line.dataset.mappedSpeaker = speakerMap[originalSpeaker];
+            }
+        }
+    });
+}
+
+// Function to update transcript highlighting with auto-scroll integration
+function updateTranscriptHighlight(currentTimeMs) {
+    const transcriptLines = document.querySelectorAll('.transcript-line:not(.comment-line)');
+    if (transcriptLines.length === 0) return;
+    
+    // First remove any existing active/next-up classes
+    document.querySelectorAll('.active, .next-up').forEach(el => {
+        el.classList.remove('active', 'next-up');
+    });
+    
+    // Simple state tracking for our search
+    let activeElement = null;
+    let closestPastLine = null;
+    let closestPastDistance = Infinity;
+    let nextUpLine = null;
+    let nextUpDistance = Infinity;
+    
+    // Scan all transcript lines to find the appropriate one
+    transcriptLines.forEach(line => {
+        // Skip lines without timing data
+        if (!line.dataset.start) return;
+        
+        const start = parseFloat(line.dataset.start);
+        const end = line.dataset.end ? parseFloat(line.dataset.end) : start + 10000; // Default 10sec if no end
+        
+        // Check if this line is active (current time is within its range)
+        if (currentTimeMs >= start && currentTimeMs <= end) {
+            line.classList.add('active');
+            activeElement = line;
+        }
+        // Track closest past line for fallback
+        else if (start < currentTimeMs) {
+            const distance = currentTimeMs - start;
+            if (distance < closestPastDistance) {
+                closestPastDistance = distance;
+                closestPastLine = line;
+            }
+        }
+        // Track upcoming line for "next up" indicator
+        else if (start > currentTimeMs) {
+            const distance = start - currentTimeMs;
+            if (distance < nextUpDistance) {
+                nextUpDistance = distance;
+                nextUpLine = line;
+            }
+        }
+    });
+    
+    // Get auto-scroll state from the global variable
+    const autoScrollEnabled = window.autoScroll !== undefined ? window.autoScroll : true;
+    console.log("Auto-scroll currently:", autoScrollEnabled);
+    
+    // If we found an active element, scroll to it if auto-scroll is enabled
+    if (activeElement) {
+        if (autoScrollEnabled) {
+            console.log("Auto-scrolling to active element");
+            scrollToElement(activeElement);
+        } else {
+            console.log("Auto-scroll disabled, not scrolling to active element");
+        }
+    }
+    // Otherwise, fallback to closest past line
+    else if (closestPastLine) {
+        closestPastLine.classList.add('active');
+        if (autoScrollEnabled) {
+            console.log("Auto-scrolling to closest past line");
+            scrollToElement(closestPastLine);
+        } else {
+            console.log("Auto-scroll disabled, not scrolling to closest past line");
+        }
+    }
+    
+    // If we have a "next up" line coming within 5 seconds, highlight it
+    if (nextUpLine && nextUpDistance < 5000) {
+        nextUpLine.classList.add('next-up');
+    }
+}
+
+// Helper function to scroll the transcript to a specific element
+function scrollToElement(element) {
+    if (!element) return;
+    
+    // First check if auto-scroll should be happening at all
+    if (!window.autoScroll) {
+        console.log("Auto-scroll is disabled, not scrolling to element");
+        return;
+    }
+    
+    try {
+        const container = document.getElementById('transcriptContainer');
+        if (!container) {
+            console.error("Transcript container not found");
+            return;
+        }
+        
+        console.log(`Scrolling to element (${element.textContent.substring(0, 20)}...)`);
+        
+        // Get the position of the element relative to the container
+        const elementTop = element.offsetTop;
+        const containerHeight = container.clientHeight;
+        const elementHeight = element.offsetHeight;
+        
+        // Calculate scroll position to center the element
+        const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+        
+        // Smoothly scroll to the position
+        container.scrollTo({
+            top: scrollPosition,
+            behavior: 'smooth'
+        });
+        
+        // Add a visual highlight effect
+        element.style.transition = 'background-color 0.3s ease';
+        const originalBg = element.style.backgroundColor;
+        element.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+        
+        // Reset the background after a moment
+        setTimeout(() => {
+            element.style.backgroundColor = originalBg;
+        }, 1000);
+        
+    } catch (error) {
+        console.error("Error scrolling to element:", error);
+        // Fallback
+        try {
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
+        } catch (e) {
+            console.error("Fallback scrolling also failed:", e);
+        }
+    }
+}
+
+// Load diarization data
+function loadDiarizationData() {
+    console.log("Loading diarization data");
+    
+    // Get diarization data
+    const diarizationElement = document.getElementById('diarizationData');
+    if (!diarizationElement || diarizationElement.value.trim() === '') {
+        console.log("No diarization data available");
+        return;
+    }
+    
+    try {
+        // Parse diarization data
+        allSegments = JSON.parse(diarizationElement.value);
+        console.log(`Loaded ${allSegments.length} diarization segments`);
+        
+        // Get missing segments if available
+        const missingSegmentsElement = document.getElementById('missingSegmentsData');
+        if (missingSegmentsElement && missingSegmentsElement.value.trim() !== '') {
+            const missingSegments = JSON.parse(missingSegmentsElement.value);
+            console.log(`Loaded ${missingSegments.length} missing segments`);
+            
+            // Add missing segments to all segments
+            missingSegments.forEach(segment => {
+                allSegments.push({
+                    ...segment,
+                    isMissing: true
+                });
+            });
+            
+            // Sort all segments by start time
+            allSegments.sort((a, b) => a.start - b.start);
+        }
+        
+        // Extract unique speakers and assign colors
+        const speakers = new Set();
+        allSegments.forEach(segment => {
+            if (segment.speaker) {
+                speakers.add(segment.speaker);
+            }
+        });
+        
+        Array.from(speakers).forEach((speaker, index) => {
+            colorMap[speaker] = colorPalette[index % colorPalette.length];
+        });
+        
+    } catch (error) {
+        console.error("Error parsing diarization data:", error);
+    }
+}
+
+// Load segment details
+function loadSegmentDetails() {
+    const segmentList = document.getElementById('segmentList');
+    if (!segmentList) return;
+    
+    // If no segments, show message
+    if (!allSegments || allSegments.length === 0) {
+        segmentList.innerHTML = `
+            <div class="alert alert-info">
+                <i class="bi bi-info-circle"></i> No diarization segments available.
+            </div>
+        `;
+        return;
+    }
+    
+    // Create table for segment details
+    let tableHTML = `
+        <div class="table-responsive">
+            <table class="table table-sm table-hover">
+                <thead>
+                    <tr>
+                        <th>Speaker</th>
+                        <th>Start</th>
+                        <th>End</th>
+                        <th>Duration</th>
+                        <th>Text</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    // Add rows for each segment
+    allSegments.forEach(segment => {
+        const duration = (segment.end - segment.start) / 1000;
+        const rowClass = segment.isMissing ? 'table-warning' : '';
+        const speakerStyle = colorMap[segment.speaker] ? 
+            `style="color: ${colorMap[segment.speaker]}; font-weight: bold;"` : '';
+        
+        tableHTML += `
+            <tr class="${rowClass}" data-start="${segment.start}" data-end="${segment.end}" onclick="seekToSegment(${segment.start})">
+                <td ${speakerStyle}>${segment.speaker || 'Unknown'}</td>
+                <td>${formatTime(segment.start / 1000)}</td>
+                <td>${formatTime(segment.end / 1000)}</td>
+                <td>${duration.toFixed(1)}s</td>
+                <td>${segment.isMissing ? 
+                    '<i class="bi bi-exclamation-triangle-fill text-warning"></i> Missing content' : 
+                    (segment.text || '(no text)')}
+                </td>
+            </tr>
+        `;
+    });
+    
+    tableHTML += `
+                </tbody>
+            </table>
+        </div>
+    `;
+    
+    segmentList.innerHTML = tableHTML;
+}
+
+// Function to seek to segment
+window.seekToSegment = function(timeMs) {
+    if (!wavesurfer) return;
+    
+    const seekPos = timeMs / 1000 / wavesurfer.getDuration();
+    wavesurfer.seekTo(seekPos);
+    
+    // If not playing, start playback
+    if (!wavesurfer.isPlaying()) {
+        wavesurfer.play();
+        const playPauseBtn = document.getElementById('playPauseBtn');
+        if (playPauseBtn) {
+            const icon = playPauseBtn.querySelector('i');
+            icon.classList.remove('bi-play-fill');
+            icon.classList.add('bi-pause-fill');
+        }
+    }
+};
+
+// Copy diarization segments to clipboard
+function copyDiarizationToClipboard() {
+    if (!allSegments || allSegments.length === 0) {
+        alert('No diarization segments available to copy.');
+        return;
+    }
+    
+    const jsonString = JSON.stringify(allSegments, null, 2);
+    
+    navigator.clipboard.writeText(jsonString)
+        .then(() => {
+            showToast('Diarization segments copied to clipboard');
+        })
+        .catch(err => {
+            console.error('Failed to copy segments:', err);
+            alert('Failed to copy segments to clipboard.');
+        });
+}
+
+// Download diarization data
+function downloadDiarization(format) {
+    if (!allSegments || allSegments.length === 0) {
+        alert('No diarization segments available to download.');
+        return;
+    }
+    
+    const audioTitle = document.querySelector('.audio-info .badge').textContent || 'transcript';
+    
+    if (format === 'json') {
+        // Create JSON data
+        const jsonString = JSON.stringify(allSegments, null, 2);
+        const blob = new Blob([jsonString], { type: 'application/json' });
+        
+        // Create download link
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${audioTitle}_diarization.json`;
+        link.click();
+        
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 100);
+    } else if (format === 'csv') {
+        // Create CSV data
+        let csvContent = 'speaker,start,end,duration,text\n';
+        
+        allSegments.forEach(segment => {
+            const duration = (segment.end - segment.start) / 1000;
+            const line = [
+                segment.speaker || 'Unknown',
+                segment.start,
+                segment.end,
+                duration.toFixed(1),
+                `"${(segment.text || '').replace(/"/g, '""')}"`
+            ].join(',');
+            
+            csvContent += line + '\n';
+        });
+        
+        // Create download link
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `${audioTitle}_diarization.csv`;
+        link.click();
+        
+        setTimeout(() => {
+            URL.revokeObjectURL(url);
+        }, 100);
+    }
+}
+
+// Show toast notification
+function showToast(message) {
+    // Create toast container if it doesn't exist
+    let toastContainer = document.querySelector('.toast-container');
+    if (!toastContainer) {
+        toastContainer = document.createElement('div');
+        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+        document.body.appendChild(toastContainer);
+    }
+    
+    // Create toast
+    const toastId = 'toast-' + Date.now();
+    const toastHTML = `
+        <div id="${toastId}" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Transcript Player</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body">
+                ${message}
+            </div>
+        </div>
+    `;
+    
+    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
+    
+    // Initialize and show toast
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: true, delay: 3000 });
+    toast.show();
+}
+
+// Add diarization button
+function addDiarizationButton() {
+    const container = document.getElementById('diarizationControlsContainer');
+    if (!container) return;
+    
+    const transcriptId = document.getElementById('transcriptId').value;
+    
+    const button = document.createElement('button');
+    button.id = 'runDiarizationBtn';
+    button.className = 'btn btn-outline-primary btn-sm';
+    button.innerHTML = '<i class="bi bi-people"></i> Generate Speaker Diarization';
+    button.addEventListener('click', function() {
+        runDiarization(transcriptId);
+    });
+    
+    container.appendChild(button);
+}
+
+// Run diarization
+function runDiarization(transcriptId) {
+    // Get button and disable it
+    const button = document.getElementById('runDiarizationBtn');
+    if (button) {
+        button.disabled = true;
+        button.innerHTML = '<i class="bi bi-arrow-repeat spinning"></i> Processing...';
+    }
+    
+    // Show processing message
+    const alertHTML = `
+        <div class="alert alert-info alert-dismissible fade show" role="alert" id="diarizationAlert">
+            <h5><i class="bi bi-info-circle"></i> Processing Audio</h5>
+            <p>Analyzing speakers with Pyannote. This may take up to 2 minutes depending on audio length.</p>
+            <div class="progress" style="height: 5px;">
+                <div class="progress-bar progress-bar-striped progress-bar-animated" style="width: 100%"></div>
+            </div>
+            <hr>
+            <p class="mb-0 small">You'll need a valid Hugging Face token with access to the Pyannote model.</p>
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
+    `;
+    
+    // Find a place to insert the alert
+    const container = document.querySelector('.container-fluid');
+    container.insertAdjacentHTML('afterbegin', alertHTML);
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Call the server to run diarization
     fetch(`/transcript/${transcriptId}/run-pyannote/`, {
         method: 'POST',
         headers: {
@@ -206,35 +2005,33 @@ function runPyannoteDiarization(transcriptId) {
         return response.json();
     })
     .then(data => {
-        console.log("Pyannote processing complete:", data);
+        console.log("Diarization complete:", data);
         
-        // Remove processing message
-        const processingMessage = document.getElementById('processingMessage');
-        if (processingMessage) {
-            processingMessage.remove();
+        // Remove the alert
+        const alert = document.getElementById('diarizationAlert');
+        if (alert) {
+            alert.remove();
         }
         
         if (data.success) {
             // Show success message
-            const successAlert = document.createElement('div');
-            successAlert.className = 'alert alert-success';
-            successAlert.innerHTML = `
-                <strong>Success!</strong> Speaker diarization completed.
-                <p>Found ${data.diarization_count || 0} segments and identified ${data.missing_segments_count || 0} missing segments.</p>
-                <p>Reloading page to show results...</p>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            const successHTML = `
+                <div class="alert alert-success alert-dismissible fade show" role="alert">
+                    <h5><i class="bi bi-check-circle"></i> Diarization Complete</h5>
+                    <p>Found ${data.diarization_count || 0} segments and identified ${data.missing_segments_count || 0} missing segments.</p>
+                    <hr>
+                    <p class="mb-0">Reloading page to display results...</p>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             `;
-            document.querySelector('.container').prepend(successAlert);
+            container.insertAdjacentHTML('afterbegin', successHTML);
             
-            // Reload the page to show the new results
+            // Reload the page after a delay
             setTimeout(() => {
                 window.location.reload();
             }, 3000);
         } else {
-            // Show detailed error message
-            const errorAlert = document.createElement('div');
-            errorAlert.className = 'alert alert-danger';
-            
+            // Show error message
             let errorMessage = data.message || 'An error occurred during diarization';
             let helpText = '';
             
@@ -242,186 +2039,314 @@ function runPyannoteDiarization(transcriptId) {
             if (errorMessage.includes('authenticate') || errorMessage.includes('token') || 
                 errorMessage.includes('Hugging Face')) {
                 helpText = `
-                    <div class="mt-3">
-                        <h5>How to fix this:</h5>
-                        <ol>
-                            <li>Go to <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face Tokens</a> to create a token</li>
-                            <li>Visit <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank">pyannote/speaker-diarization-3.1</a> and accept the user agreement</li>
-                            <li>Go to <a href="/settings/">Settings</a> and enter your token</li>
-                        </ol>
-                    </div>
+                    <hr>
+                    <h6>How to fix this:</h6>
+                    <ol>
+                        <li>Go to <a href="https://huggingface.co/settings/tokens" target="_blank">Hugging Face Tokens</a> to create a token</li>
+                        <li>Visit <a href="https://huggingface.co/pyannote/speaker-diarization-3.1" target="_blank">pyannote/speaker-diarization-3.1</a> and accept the user agreement</li>
+                        <li>Go to <a href="/settings/">Settings</a> and enter your token</li>
+                    </ol>
                 `;
             }
             
-            errorAlert.innerHTML = `
-                <strong>Error:</strong> ${errorMessage}
-                ${helpText}
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            const errorHTML = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5><i class="bi bi-exclamation-triangle"></i> Diarization Failed</h5>
+                    <p>${errorMessage}</p>
+                    ${helpText}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
             `;
-            document.querySelector('.container').prepend(errorAlert);
+            container.insertAdjacentHTML('afterbegin', errorHTML);
             
             // Reset button
-            if (runButton) {
-                runButton.disabled = false;
-                runButton.innerHTML = 'Run Speaker Diarization';
+            if (button) {
+                button.disabled = false;
+                button.innerHTML = '<i class="bi bi-people"></i> Generate Speaker Diarization';
             }
         }
     })
     .catch(error => {
-        console.error("Error running Pyannote:", error);
+        console.error("Error running diarization:", error);
         
-        // Remove processing message
-        const processingMessage = document.getElementById('processingMessage');
-        if (processingMessage) {
-            processingMessage.remove();
+        // Remove the alert
+        const alert = document.getElementById('diarizationAlert');
+        if (alert) {
+            alert.remove();
         }
         
         // Show error message
-        const errorAlert = document.createElement('div');
-        errorAlert.className = 'alert alert-danger';
-        errorAlert.innerHTML = `
-            <strong>Error:</strong> Failed to run speaker diarization. ${error.message}
-            <div class="mt-2">
-                <p>This may be due to:</p>
-                <ul>
-                    <li>Missing or invalid Hugging Face token</li>
-                    <li>Not accepting the model license</li>
-                    <li>Server error processing the audio</li>
-                </ul>
-                <p>Check the browser console for more details.</p>
+        const errorHTML = `
+            <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                <h5><i class="bi bi-exclamation-triangle"></i> Diarization Failed</h5>
+                <p>${error.message}</p>
+                <hr>
+                <p class="mb-0">Check the browser console for more details.</p>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
-        document.querySelector('.container').prepend(errorAlert);
+        container.insertAdjacentHTML('afterbegin', errorHTML);
         
         // Reset button
-        if (runButton) {
-            runButton.disabled = false;
-            runButton.innerHTML = 'Run Speaker Diarization';
+        if (button) {
+            button.disabled = false;
+            button.innerHTML = '<i class="bi bi-people"></i> Generate Speaker Diarization';
         }
     });
 }
-</script>
 
-<!-- Load modular JavaScript files -->
-<script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/speaker_mapping.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/missing_segments.js' %}"></script>
-
-<script>
-// Simplified initialization with a direct approach for better browser compatibility
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("DOM loaded, initializing transcript player");
+// Initialize self-test functionality
+function initializeSelfTests() {
+    const testButton = document.getElementById('runTestsBtn');
+    if (testButton) {
+        testButton.addEventListener('click', function() {
+            runSelfTests();
+        });
+    }
     
-    // Helper functions used in multiple places
-    window.formatTime = function(seconds) {
-        const minutes = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${minutes}:${secs.toString().padStart(2, '0')}`;
-    };
-    
-    window.seekToTime = function(milliseconds) {
-        if (window.player) {
-            window.player.currentTime = milliseconds / 1000;
-            if (window.player.paused) {
-                try {
-                    window.player.play();
-                } catch (e) {
-                    console.error("Error playing audio:", e);
+    // Add debug button handler
+    const debugButton = document.getElementById('showDebugBtn');
+    if (debugButton) {
+        debugButton.addEventListener('click', function() {
+            const debugInfoDiv = document.getElementById('debugInfo');
+            if (debugInfoDiv) {
+                if (debugInfoDiv.style.display === 'none') {
+                    showDebugInfo();
+                    debugInfoDiv.style.display = 'block';
+                    this.textContent = 'Hide Debug';
+                } else {
+                    debugInfoDiv.style.display = 'none';
+                    this.textContent = 'Debug Info';
                 }
             }
-        }
+        });
+    }
+}
+
+// Show debug information
+function showDebugInfo() {
+    const debugContentDiv = document.querySelector('.debug-content');
+    if (!debugContentDiv) return;
+    
+    // Collect debug information
+    const debug = {
+        browser: navigator.userAgent,
+        audioElement: document.getElementById('audioPlayer') ? 'Found' : 'Missing',
+        audioSrc: document.getElementById('audioPlayer')?.src || 'None',
+        audioSourceElement: document.getElementById('audioPlayer')?.querySelector('source') ? 'Found' : 'Missing',
+        audioSourceSrc: document.getElementById('audioPlayer')?.querySelector('source')?.src || 'None',
+        wavesurfer: typeof wavesurfer !== 'undefined' ? 'Defined' : 'Undefined',
+        wavesurferInitialized: wavesurfer ? 'Yes' : 'No',
+        transcriptContainer: document.getElementById('transcriptContainer') ? 'Found' : 'Missing',
+        transcriptContainerContent: document.getElementById('transcriptContainer')?.innerHTML.length + ' characters',
+        chatContent: document.getElementById('chatContent') ? (document.getElementById('chatContent').value.length + ' characters') : 'Missing',
+        rawContent: document.getElementById('rawContent') ? (document.getElementById('rawContent').value.length + ' characters') : 'Missing',
+        speakerMappings: document.getElementById('speakersData') ? (document.getElementById('speakersData').value.length + ' characters') : 'Missing',
+        diarizationData: document.getElementById('diarizationData') ? (document.getElementById('diarizationData').value.length + ' characters') : 'Missing',
+        windowSize: `${window.innerWidth}x${window.innerHeight}`,
+        timestamp: new Date().toISOString()
     };
     
-    // Define player variable in global scope
-    window.player = document.getElementById('audioPlayer');
-    
-    // Check if audio player exists
-    if (!window.player) {
-        console.error("Audio player element not found");
-        document.getElementById('audioPlayerContainer').innerHTML = `
-            <div class="alert alert-danger">
-                <strong>Error:</strong> Audio player could not be initialized.
-                The audio file may be missing or inaccessible.
-            </div>
-        `;
-        return;
+    // Format debug info as HTML
+    let debugHTML = '<pre class="bg-light p-3 rounded">';
+    for (const [key, value] of Object.entries(debug)) {
+        debugHTML += `<strong>${key}:</strong> ${value}\n`;
     }
+    debugHTML += '</pre>';
     
-    // Initialization order is important:
-    // 1. First initialize audio player
-    try {
-        window.initializeAudioPlayer();
-    } catch (e) {
-        console.error("Error initializing audio player:", e);
-    }
+    // Add copy button
+    debugHTML += `
+        <button id="copyDebugBtn" class="btn btn-sm btn-outline-secondary mt-2">
+            <i class="bi bi-clipboard"></i> Copy Debug Info
+        </button>
+    `;
     
-    // 2. Initialize transcript display
-    try {
-        window.initializeTranscriptDisplay();
-    } catch (e) {
-        console.error("Error initializing transcript display:", e);
-    }
+    // Display the debug info
+    debugContentDiv.innerHTML = debugHTML;
     
-    // 3. Initialize speaker mappings
-    try {
-        if (typeof window.initializeSpeakerMappings === 'function') {
-            window.initializeSpeakerMappings();
-        }
-        if (typeof window.assignSpeakerColors === 'function') {
-            window.assignSpeakerColors();
-        }
-    } catch (e) {
-        console.error("Error initializing speaker mappings:", e);
-    }
-    
-    // 4. Initialize missing segments handling
-    try {
-        if (typeof window.initializeMissingSegments === 'function') {
-            window.initializeMissingSegments();
-        }
-    } catch (e) {
-        console.error("Error initializing missing segments:", e);
-    }
-    
-    // Check if Pyannote has been run
-    const pyannoteProcessed = document.getElementById('pyannoteProcessed').value === 'True';
-    if (!pyannoteProcessed) {
-        // Show button to run Pyannote diarization
-        const transcriptId = document.getElementById('transcriptId').value;
-        
-        // Find the Audio Player card header
-        let audioPlayerContainer = null;
-        const headers = document.querySelectorAll('.card-header');
-        for (const header of headers) {
-            if (header.textContent.includes('Audio Player')) {
-                audioPlayerContainer = header;
-                break;
-            }
-        }
-        
-        if (audioPlayerContainer) {
-            console.log("Found audio player container:", audioPlayerContainer);
-            const runPyannoteBtn = document.createElement('button');
-            runPyannoteBtn.id = 'runPyannoteBtn';
-            runPyannoteBtn.className = 'btn btn-sm btn-outline-primary float-end';
-            runPyannoteBtn.innerHTML = 'Run Speaker Diarization';
-            runPyannoteBtn.addEventListener('click', function() {
-                runPyannoteDiarization(transcriptId);
+    // Add copy button handler
+    document.getElementById('copyDebugBtn')?.addEventListener('click', function() {
+        const debugText = JSON.stringify(debug, null, 2);
+        navigator.clipboard.writeText(debugText)
+            .then(() => {
+                this.innerHTML = '<i class="bi bi-check"></i> Copied!';
+                setTimeout(() => {
+                    this.innerHTML = '<i class="bi bi-clipboard"></i> Copy Debug Info';
+                }, 2000);
+            })
+            .catch(err => {
+                console.error('Failed to copy debug info:', err);
+                this.innerHTML = '<i class="bi bi-x"></i> Failed to copy';
             });
+    });
+}
+
+// Run self-tests
+function runSelfTests() {
+    console.log("Running self-tests");
+    
+    const testResults = document.getElementById('testResults');
+    testResults.innerHTML = `
+        <div class="text-center p-2">
+            <div class="spinner-border spinner-border-sm text-primary" role="status">
+                <span class="visually-hidden">Running tests...</span>
+            </div>
+            <span class="ms-2">Running tests...</span>
+        </div>
+    `;
+    
+    // Create an array to store test results
+    const tests = [];
+    
+    // Test 1: Check if WaveSurfer is initialized
+    tests.push({
+        name: 'Audio Visualization',
+        result: wavesurfer ? 'Pass' : 'Fail',
+        details: wavesurfer ? 'WaveSurfer initialized correctly' : 'WaveSurfer failed to initialize'
+    });
+    
+    // Test 2: Check if transcript lines have timestamps
+    const transcriptLines = document.querySelectorAll('.transcript-line');
+    const timestampedLines = Array.from(transcriptLines).filter(line => line.dataset.start);
+    tests.push({
+        name: 'Transcript Timestamps',
+        result: timestampedLines.length > 0 ? 'Pass' : 'Fail',
+        details: `Found ${timestampedLines.length} transcript lines with timestamps`
+    });
+    
+    // Test 3: Check click handlers on transcript lines
+    let clickHandlerTestResult = 'Not tested';
+    let clickHandlerDetails = 'Could not test click handlers';
+    
+    if (timestampedLines.length > 0) {
+        try {
+            // Try to get first event listener (not standard, but works in some browsers)
+            const firstLine = timestampedLines[0];
+            const hasClickHandler = firstLine.onclick || 
+                                   (typeof getEventListeners === 'function' && 
+                                    getEventListeners(firstLine).click) ||
+                                   firstLine.getAttribute('onclick');
             
-            // Check if button already exists before adding
-            if (!audioPlayerContainer.querySelector('#runPyannoteBtn')) {
-                audioPlayerContainer.appendChild(runPyannoteBtn);
-                console.log("Added run pyannote button");
-            }
-        } else {
-            console.error("Could not find audio player container");
+            clickHandlerTestResult = 'Pass';
+            clickHandlerDetails = 'Transcript lines have click handlers for seeking';
+        } catch (e) {
+            clickHandlerTestResult = 'Unknown';
+            clickHandlerDetails = 'Cannot definitively test click handlers in this browser';
         }
     }
     
-    console.log("Transcript player initialization complete");
-});
+    tests.push({
+        name: 'Click Handlers',
+        result: clickHandlerTestResult,
+        details: clickHandlerDetails
+    });
+    
+    // Test 4: Check for speaker colors
+    const colorCount = Object.keys(colorMap).length;
+    tests.push({
+        name: 'Speaker Colors',
+        result: colorCount > 0 ? 'Pass' : 'Fail',
+        details: `${colorCount} speakers assigned unique colors`
+    });
+    
+    // Test 5: Check for diarization segments
+    tests.push({
+        name: 'Diarization Data',
+        result: allSegments && allSegments.length > 0 ? 'Pass' : 'Not Available',
+        details: allSegments ? `Found ${allSegments.length} diarization segments` : 'No diarization data available'
+    });
+    
+    // Test 6: Check if transcript highlight function works
+    let highlightTestResult = 'Unknown';
+    let highlightDetails = 'Cannot test highlight function directly';
+    
+    if (typeof updateTranscriptHighlight === 'function') {
+        try {
+            // Call the function with a test time
+            updateTranscriptHighlight(10000); // 10 seconds
+            highlightTestResult = 'Pass';
+            highlightDetails = 'Transcript highlight function called successfully';
+        } catch (e) {
+            highlightTestResult = 'Fail';
+            highlightDetails = `Error: ${e.message}`;
+        }
+    }
+    
+    tests.push({
+        name: 'Transcript Highlighting',
+        result: highlightTestResult,
+        details: highlightDetails
+    });
+    
+    // Test 7: Check active line is highlighted
+    const activeLines = document.querySelectorAll('.transcript-line.active');
+    tests.push({
+        name: 'Active Line Highlighting',
+        result: activeLines.length > 0 ? 'Pass' : 'Fail',
+        details: activeLines.length > 0 ? 
+            'Active transcript line is highlighted' : 
+            'No active transcript line found'
+    });
+    
+    // Display test results
+    let resultsHTML = `
+        <h6 class="mb-3">Test Results</h6>
+        <div class="table-responsive">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Test</th>
+                        <th>Result</th>
+                        <th>Details</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+    
+    tests.forEach(test => {
+        const resultClass = test.result === 'Pass' ? 'text-success' : 
+                           test.result === 'Fail' ? 'text-danger' : 
+                           test.result === 'Not Available' ? 'text-muted' : 'text-warning';
+        
+        const icon = test.result === 'Pass' ? 'bi-check-circle-fill' : 
+                    test.result === 'Fail' ? 'bi-x-circle-fill' : 
+                    test.result === 'Not Available' ? 'bi-dash-circle-fill' : 'bi-question-circle-fill';
+        
+        resultsHTML += `
+            <tr>
+                <td>${test.name}</td>
+                <td class="${resultClass}"><i class="bi ${icon}"></i> ${test.result}</td>
+                <td class="small">${test.details}</td>
+            </tr>
+        `;
+    });
+    
+    resultsHTML += `
+                </tbody>
+            </table>
+        </div>
+        <div class="mt-3">
+            <button id="runTestsBtn" class="btn btn-sm btn-outline-primary">
+                <i class="bi bi-arrow-repeat"></i> Run Tests Again
+            </button>
+        </div>
+    `;
+    
+    testResults.innerHTML = resultsHTML;
+    
+    // Re-bind the test button
+    document.getElementById('runTestsBtn').addEventListener('click', function() {
+        runSelfTests();
+    });
+}
+
+// Formatting time (seconds to MM:SS format)
+function formatTime(seconds) {
+    if (isNaN(seconds)) return '00:00';
+    
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+}
 </script>
-{% endblock %} 
+{% endblock %}

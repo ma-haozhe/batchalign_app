@@ -1,20 +1,127 @@
 /* Transcript Player Styles */
 
+/* Audio Player */
+.audio-container {
+    margin: 15px 0;
+}
+
+.audio-container audio {
+    width: 100%;
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.direct-audio-link {
+    margin-top: 5px;
+    text-align: center;
+    font-size: 14px;
+}
+
+/* Main layout */
+.container-fluid {
+    max-width: 1600px;
+}
+
+.time-display {
+    font-family: monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+    min-width: 70px;
+    text-align: center;
+}
+
+/* Audio visualization */
+#waveform {
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    margin-bottom: 8px;
+    position: relative;
+    height: 80px; /* Ensure we have a default height even if WaveSurfer fails */
+}
+
+#waveform::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(to bottom, rgba(0,0,0,0.03), transparent);
+    pointer-events: none;
+    z-index: 1;
+}
+
+.speaker-timeline-container {
+    position: relative;
+    height: 100px;
+    padding: 0;
+    margin-bottom: 15px;
+    background: #f9f9f9;
+    border-radius: 6px;
+    border: 1px solid #eee;
+    overflow: hidden;
+}
+
+#timelineCanvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* Confidence indicator bar like Pyannote */
+.confidence-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 10px;
+    width: 100%;
+    background: linear-gradient(90deg, rgba(255,0,0,0.3) 0%, rgba(255,162,0,0.3) 50%, rgba(37,186,0,0.3) 100%);
+    z-index: 10;
+}
+
+/* Speaker rows in Pyannote style */
+.speaker-row {
+    position: relative;
+    height: 20px;
+    margin: 2px 0;
+}
+
+.speaker-label-right {
+    position: absolute;
+    right: 5px;
+    top: 0;
+    font-weight: bold;
+    font-size: 10px;
+    line-height: 20px;
+    z-index: 5;
+}
+
+.speaker-segment {
+    position: absolute;
+    height: 100%;
+    border-radius: 2px;
+    opacity: 0.8;
+}
+
 /* Transcript container */
 .transcript-container {
-    max-height: 500px;
+    max-height: 600px;
     overflow-y: auto;
-    border: 1px solid #ddd;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
     padding: 10px;
-    font-family: monospace;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
     line-height: 1.5;
     font-size: 14px;
+    background-color: #fff;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
 .transcript-header {
     max-height: 200px;
     overflow-y: auto;
-    border: 1px solid #ddd;
+    border: 1px solid #e9ecef;
+    border-radius: 4px;
     padding: 10px;
     font-family: monospace;
     line-height: 1.5;
@@ -25,26 +132,29 @@
 
 /* Transcript lines */
 .transcript-line {
-    padding: 5px 10px;
-    border-radius: 4px;
+    padding: 8px 12px;
+    border-radius: 6px;
     cursor: pointer;
-    margin-bottom: 6px;
-    transition: background-color 0.3s, border-left 0.3s;
+    margin-bottom: 8px;
+    transition: all 0.2s ease-in-out;
     border-left: 3px solid transparent;
     display: flex;
     flex-wrap: wrap;
     align-items: baseline;
+    background-color: #fff;
 }
 
 .transcript-line:hover {
-    background-color: #f0f0f0;
+    background-color: #f8f9fa;
+    transform: translateX(2px);
 }
 
 .transcript-line.active {
-    background-color: #e2f0ff;
+    background-color: #e6f3ff;
     border-left: 3px solid #007bff;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 3px rgba(0, 123, 255, 0.2);
     font-weight: 500;
+    transform: translateX(3px);
 }
 
 .transcript-line.next-up {
@@ -56,8 +166,9 @@
 .speaker-label {
     font-weight: bold;
     margin-right: 12px;
-    min-width: 80px;
+    min-width: 85px;
     color: #2c5282;
+    user-select: none;
 }
 
 /* Timestamps */
@@ -71,6 +182,7 @@
     border-radius: 3px;
     min-width: 50px;
     text-align: center;
+    box-shadow: 0 1px 1px rgba(0,0,0,0.05);
 }
 
 /* Comment lines */
@@ -80,6 +192,7 @@
     padding-left: 30px;
     font-size: 0.9em;
     border-left: 3px solid #e9ecef;
+    background-color: #fcfcfc;
 }
 
 /* Header lines */
@@ -87,46 +200,60 @@
     color: #495057;
     font-family: monospace;
     padding: 3px 0;
+    border-bottom: 1px dotted #e9ecef;
 }
 
 /* Utterance text */
 .utterance-text {
     white-space: pre-wrap;
     flex: 1;
+    line-height: 1.6;
 }
 
 /* Word highlighting */
-.highlighted-word {
+.transcript-word {
+    transition: background-color 0.2s ease, font-weight 0.2s ease;
+    border-radius: 2px;
+    display: inline;
+}
+
+.transcript-word.highlighted {
     background-color: #ffff00;
     font-weight: bold;
+    padding: 1px 0;
 }
 
 /* Raw content */
 .raw-content {
-    max-height: 500px;
+    max-height: 600px;
     overflow-y: auto;
     white-space: pre-wrap;
     font-family: monospace;
     font-size: 14px;
     line-height: 1.5;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+    padding: 10px;
 }
 
 /* Missing segments */
 .missing-segment {
-    padding: 8px 10px;
+    padding: 8px 12px;
     margin: 8px 0;
     background-color: #fff3cd;
     border-left: 3px solid #ffc107;
-    border-radius: 4px;
+    border-radius: 6px;
     cursor: pointer;
     display: flex;
     flex-wrap: wrap;
     align-items: center;
-    transition: background-color 0.2s ease;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(255, 193, 7, 0.2);
 }
 
 .missing-segment:hover {
     background-color: #ffe8a1;
+    transform: translateX(2px);
 }
 
 .missing-segment-icon {
@@ -147,6 +274,12 @@
 
 .missing-segment .btn {
     margin-left: 8px;
+    opacity: 0.8;
+    transition: opacity 0.2s ease;
+}
+
+.missing-segment:hover .btn {
+    opacity: 1;
 }
 
 .missing-segment-edit {
@@ -156,6 +289,30 @@
 
 .missing-segment .input-group {
     box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+}
+
+/* Speaker mapping form */
+.color-box {
+    border: 1px solid rgba(0,0,0,0.1);
+}
+
+/* Segment list */
+.segment-list {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.segment-list table {
+    font-size: 0.85rem;
+}
+
+.segment-list table tr {
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.segment-list table tr:hover {
+    background-color: #f0f8ff;
 }
 
 /* Spinner for loading state */
@@ -182,4 +339,77 @@
 .error-message {
     color: #dc3545;
     font-style: italic;
-} 
+}
+
+/* Toast notifications */
+.toast-container {
+    z-index: 1050;
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) {
+    .transcript-container {
+        max-height: 400px;
+    }
+    
+    .speaker-label {
+        min-width: 70px;
+        font-size: 0.9em;
+    }
+    
+    .transcript-timestamp {
+        font-size: 0.8em;
+        padding: 1px 4px;
+        min-width: 40px;
+    }
+}
+
+/* Player controls */
+.audio-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.zoom-controls {
+    display: flex;
+    gap: 2px;
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    .transcript-container, 
+    .transcript-line {
+        background-color: #222;
+        color: #eee;
+        border-color: #444;
+    }
+    
+    .transcript-line:hover {
+        background-color: #333;
+    }
+    
+    .transcript-line.active {
+        background-color: #2d3748;
+        border-left-color: #4299e1;
+    }
+    
+    .speaker-label {
+        color: #90cdf4;
+    }
+    
+    .timestamp {
+        background-color: #2d3748;
+        color: #cbd5e0;
+    }
+    
+    .comment-line {
+        color: #a0aec0;
+        border-left-color: #4a5568;
+    }
+    
+    .raw-content {
+        background-color: #2d3748;
+        color: #eee;
+    }
+}

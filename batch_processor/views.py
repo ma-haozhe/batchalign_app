@@ -569,35 +569,70 @@ def view_transcript(request, transcript_id):
         
         # Get speaker mappings
         speaker_mappings = {sm.original_id: sm.chat_role for sm in transcript.speaker_mapping.all()}
+        speaker_mappings_json = json.dumps(speaker_mappings)
         
         # Get all available speakers
         speakers = []
         if transcript.diarization_data:
             speakers = list(set(seg['speaker'] for seg in transcript.diarization_data))
+        speakers_json = json.dumps(speakers)
         
         # Get audio URL - Fix the audio URL path
         audio_url = None
         if audio_file and audio_file.audio_file:
             audio_url = audio_file.audio_file.url
             logger.debug(f"Audio URL for transcript {transcript_id}: {audio_url}")
+            
+            # Debug media file path - check if the file exists
+            import os
+            from django.conf import settings
+            
+            # Construct the actual file path on the server
+            file_path = os.path.join(settings.MEDIA_ROOT, str(audio_file.audio_file))
+            file_exists = os.path.isfile(file_path)
+            file_size = os.path.getsize(file_path) if file_exists else 'N/A'
+            logger.debug(f"Audio file path: {file_path}, exists: {file_exists}, size: {file_size}")
+            
+            # Add MIME type detection
+            import mimetypes
+            content_type = mimetypes.guess_type(file_path)[0]
+            logger.debug(f"Audio file MIME type: {content_type}")
+            
+            # Extract file extension
+            file_ext = os.path.splitext(file_path)[1].lower()
+            
+            # Ensure proper MIME type mapping
+            if file_ext == '.mp3' and not content_type:
+                logger.debug("Adding explicit MP3 MIME type")
+                content_type = 'audio/mpeg'
+            elif file_ext == '.wav' and not content_type:
+                logger.debug("Adding explicit WAV MIME type")
+                content_type = 'audio/wav'
+            
+            # Make sure the audio URL is absolute
+            if not audio_url.startswith('http') and not audio_url.startswith('/'):
+                audio_url = '/' + audio_url
+                
+            # Serve a direct file response if requested
+            if request.GET.get('direct') == '1':
+                logger.debug(f"Serving direct file: {file_path}")
+                from django.http import FileResponse
+                response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+                response['Content-Disposition'] = f'inline; filename="{os.path.basename(file_path)}"'
+                return response
         
-        # Prepare transcript segments JSON
-        transcript_segments = []
+        # Prepare diarization data in correct format
+        diarization_data = []
         if transcript.diarization_data:
             for segment in transcript.diarization_data:
-                transcript_segments.append({
+                diarization_data.append({
                     'start': segment.get('start', 0),
                     'end': segment.get('end', 0),
                     'speaker': segment.get('speaker', ''),
-                    'text': segment.get('text', '')
+                    'text': segment.get('text', ''),
+                    'confidence': segment.get('confidence', 1.0)
                 })
-        transcript_segments_json = json.dumps(transcript_segments)
-        
-        # Prepare segments JSON (for fallback)
-        segments = []
-        if hasattr(transcript, 'get_segments'):
-            segments = transcript.get_segments()
-        segments_json = json.dumps(segments)
+        diarization_data_json = json.dumps(diarization_data)
         
         # Prepare missing segments JSON if available
         missing_segments = transcript.missing_segments or []
@@ -606,16 +641,34 @@ def view_transcript(request, transcript_id):
         # Debug information
         logger.debug(f"Transcript {transcript_id} content length: {len(transcript.chat_content) if transcript.chat_content else 0}")
         logger.debug(f"Found {len(missing_segments)} missing segments")
+        logger.debug(f"Diarization processed: {transcript.pyannote_processed}")
+        
+        # Add more debug logs to help diagnose issues
+        if transcript.chat_content:
+            logger.debug(f"CHAT content first 100 chars: {transcript.chat_content[:100]}")
+        else:
+            logger.debug("CHAT content is empty")
+            
+        if audio_url:
+            logger.debug(f"Audio URL: {audio_url}")
+        else:
+            logger.debug("Audio URL is empty")
+        
+        # Ensure transcript format is set
+        if not transcript.format:
+            transcript.format = 'CHAT'
+            transcript.save()
         
         context = {
             'transcript': transcript,
             'audio_file': audio_file,
-            'speaker_mappings': speaker_mappings,
-            'speakers': speakers,
+            'speaker_mappings': speaker_mappings_json,
+            'speakers_json': speakers_json,
             'audio_url': audio_url,
-            'transcript_segments_json': transcript_segments_json,
-            'segments_json': segments_json,
+            'diarization_data': diarization_data_json,
             'missing_segments': missing_segments_json,
+            'chat_content': transcript.chat_content,
+            'raw_content': transcript.raw_content
         }
         
         return render(request, 'batch_processor/transcript_player.html', context)
@@ -779,6 +832,49 @@ def save_to_env_file(key, value):
     
     logger.info(f"Saved {key} to .env file")
     
+# Direct media access view
+def direct_media_access(request, file_path):
+    """Serve media files directly with proper content type"""
+    import os
+    from django.http import FileResponse, Http404
+    import mimetypes
+    
+    # Construct the full path to the media file
+    full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+    
+    # Security check - ensure the path is within MEDIA_ROOT
+    if not full_path.startswith(settings.MEDIA_ROOT):
+        logger.error(f"Security violation: attempted access to {full_path}")
+        raise Http404("File not found")
+    
+    # Check if the file exists
+    if not os.path.exists(full_path) or not os.path.isfile(full_path):
+        logger.error(f"File not found: {full_path}")
+        raise Http404("File not found")
+    
+    # Determine the content type
+    content_type = mimetypes.guess_type(full_path)[0]
+    
+    # For audio files, ensure proper content type
+    ext = os.path.splitext(full_path)[1].lower()
+    if ext == '.mp3' and not content_type:
+        content_type = 'audio/mpeg'
+    elif ext == '.wav' and not content_type:
+        content_type = 'audio/wav'
+    elif ext == '.m4a' and not content_type:
+        content_type = 'audio/mp4'
+    
+    # Log the file access
+    logger.debug(f"Serving media file: {full_path} with content-type: {content_type}")
+    
+    # Serve the file with proper content type
+    try:
+        response = FileResponse(open(full_path, 'rb'), content_type=content_type)
+        response['Content-Disposition'] = f'inline; filename="{os.path.basename(full_path)}"'
+        return response
+    except Exception as e:
+        logger.error(f"Error serving file {full_path}: {e}")
+        raise Http404("Error accessing file")
 def run_pyannote_diarization(request, transcript_id):
     """Process audio file with Pyannote for speaker diarization"""
     if request.method != 'POST':

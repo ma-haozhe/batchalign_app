@@ -469,14 +469,21 @@ function setupTranscriptHighlighting() {
             }
         });
         
-        // If we found an active element, scroll to it
+        // Check if auto-scroll is enabled
+        const autoScrollEnabled = document.getElementById('autoScrollToggle').checked;
+        
+        // If we found an active element, scroll to it if auto-scroll is enabled
         if (activeElement) {
-            scrollToElement(activeElement);
+            if (autoScrollEnabled) {
+                scrollToElement(activeElement);
+            }
         }
         // Otherwise, fallback to closest past line
         else if (closestPastLine) {
             closestPastLine.classList.add('active');
-            scrollToElement(closestPastLine);
+            if (autoScrollEnabled) {
+                scrollToElement(closestPastLine);
+            }
         }
         
         // If we have a "next up" line coming within 5 seconds, highlight it

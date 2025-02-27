@@ -122,6 +122,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # Media files (Uploaded files)
 MEDIA_URL = '/media/'
+
+# Add MIME type mapping for MP3 and WAV files
+import mimetypes
+mimetypes.add_type("audio/mpeg", ".mp3", True)
+mimetypes.add_type("audio/wav", ".wav", True)
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Logging Configuration

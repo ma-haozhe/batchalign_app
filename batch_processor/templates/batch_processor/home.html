@@ -1,67 +1,41 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Batchalign Web App</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            line-height: 1.6;
-        }
-        .header {
-            text-align: center;
-            margin-bottom: 40px;
-        }
-        .features {
-            margin: 30px 0;
-        }
-        .feature-item {
-            margin-bottom: 20px;
-            padding: 15px;
-            border-radius: 5px;
-            background-color: #f5f5f5;
-        }
-        .cta-button {
-            display: inline-block;
-            background-color: #4CAF50;
-            color: white;
-            padding: 12px 24px;
-            text-decoration: none;
-            border-radius: 4px;
-            margin-top: 20px;
-        }
-        .cta-button:hover {
-            background-color: #45a049;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>Welcome to Batchalign Web App</h1>
-        <p>A powerful tool for audio transcription and speaker diarization</p>
+{% extends "batch_processor/base.html" %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="text-center mb-5">
+        <h1>Welcome to BatchAlign App</h1>
+        <p class="lead">Upload audio files for transcription and speaker diarization</p>
     </div>
 
-    <div class="features">
-        <div class="feature-item">
-            <h3>🎯 Easy Audio Processing</h3>
-            <p>Upload single or multiple audio files and get accurate transcriptions with speaker identification.</p>
-        </div>
-        
-        <div class="feature-item">
-            <h3>👥 Speaker Diarization</h3>
-            <p>Automatically identify and label different speakers in your audio files.</p>
-        </div>
-        
-        <div class="feature-item">
-            <h3>📦 Batch Processing</h3>
-            <p>Process multiple files at once to save time and effort.</p>
+    <div class="row">
+        <div class="col-md-8 offset-md-2">
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h4>Upload Audio File</h4>
+                </div>
+                <div class="card-body">
+                    <form method="post" action="{% url 'upload_audio' %}" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="audioFile" class="form-label">Select an audio file</label>
+                            <input type="file" class="form-control" id="audioFile" name="audio_file" accept="audio/*" required>
+                            <div class="form-text">Supported formats: MP3, WAV, M4A, etc.</div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Upload and Process</button>
+                    </form>
+                </div>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white">
+                    <h4>API Configuration</h4>
+                </div>
+                <div class="card-body">
+                    <p>Configure your API settings for transcription and speaker diarization:</p>
+                    <a href="{% url 'settings' %}" class="btn btn-info">Go to Settings</a>
+                </div>
+            </div>
         </div>
     </div>
-
-    <div style="text-align: center;">
-        <a href="{% url 'upload' %}" class="cta-button">Start Processing</a>
-    </div>
-</body>
-</html>
+</div>
+{% endblock %}

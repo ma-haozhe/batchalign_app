@@ -17,4 +17,6 @@ urlpatterns = [
     path('set-hf-token/', views.set_hf_token, name='set_hf_token'),
     path('set-rev-api-key/', views.set_rev_api_key, name='set_rev_api_key'),
     path('get-api-keys/', views.get_api_keys, name='get_api_keys'),
+    # Add media direct access endpoint
+    path('media-direct/<path:file_path>/', views.direct_media_access, name='direct_media_access'),
 ]

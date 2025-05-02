@@ -40,50 +40,226 @@ window.assignSpeakerColors = function() {
 window.initializeSpeakerMappings = function() {
     console.log("Initializing speaker mappings");
     const speakerInputs = document.getElementById('speakerInputs');
-    if (!speakerInputs) return;
+    if (!speakerInputs) {
+        console.error("Speaker inputs container not found");
+        return;
+    }
     
+    // Clear existing content
     speakerInputs.innerHTML = '';
     
     // Get existing mappings from the server
-    let speakersData = [];
+    let speakerMappings = {};
     try {
-        const speakersJsonElement = document.getElementById('speakersData');
-        const speakersJsonValue = speakersJsonElement ? speakersJsonElement.value : (window.speakersJson || '[]');
-        speakersData = JSON.parse(speakersJsonValue);
+        // First try to get speakerMappings from the DOM
+        const speakersDataElement = document.getElementById('speakersData');
+        if (speakersDataElement && speakersDataElement.value) {
+            console.log("Found speakersData element with value:", speakersDataElement.value);
+            speakerMappings = JSON.parse(speakersDataElement.value);
+        } else {
+            console.warn("No speakersData element or empty value");
+        }
     } catch (e) {
         console.error("Error parsing speakers JSON:", e);
     }
     
-    // Process any server-provided mappings
-    speakersData.forEach(speaker => {
-        if (speaker && speaker.original_id) {
-            window.speakerMappings[speaker.original_id] = speaker.role;
-            window.uniqueSpeakers.add(speaker.original_id);
+    console.log("Speaker mappings loaded:", speakerMappings);
+    
+    // Store mappings in global variable for later use
+    window.speakerMappings = speakerMappings || {};
+    
+    // Collect speakers from transcript
+    document.querySelectorAll('.transcript-line[data-speaker]').forEach(line => {
+        const speaker = line.dataset.speaker;
+        if (speaker) {
+            window.uniqueSpeakers.add(speaker);
         }
     });
     
-    // Collect speakers from transcript if needed
-    if (window.uniqueSpeakers.size === 0) {
-        document.querySelectorAll('.transcript-line[data-speaker]').forEach(line => {
-            const speaker = line.dataset.speaker;
-            if (speaker) {
-                window.uniqueSpeakers.add(speaker);
-            }
-        });
+    // Get speakers from JSON if available
+    try {
+        const speakersJsonElement = document.getElementById('speakersJson');
+        if (speakersJsonElement && speakersJsonElement.value) {
+            const speakersArray = JSON.parse(speakersJsonElement.value);
+            speakersArray.forEach(speaker => {
+                if (speaker) {
+                    window.uniqueSpeakers.add(speaker);
+                }
+            });
+        }
+    } catch (e) {
+        console.error("Error parsing speakersJson:", e);
     }
     
+    console.log(`Found ${window.uniqueSpeakers.size} unique speakers:`, Array.from(window.uniqueSpeakers));
+    
+    // If no speakers found, show a message with a manual add button
+    if (window.uniqueSpeakers.size === 0) {
+        console.warn("No speakers found in transcript");
+        
+        // Try to extract them from CHAT format even if they weren't set as data attributes
+        try {
+            const chatContent = document.getElementById('chatContent');
+            if (chatContent && chatContent.value) {
+                console.log("Trying to extract speakers from chat content");
+                const lines = chatContent.value.split('\n');
+                let speakersInChat = new Set();
+                
+                // Look for common CHAT format speaker markers (lines starting with *)
+                for (const line of lines) {
+                    if (line.startsWith('*') && line.includes(':')) {
+                        const speaker = line.substring(1, line.indexOf(':')).trim();
+                        if (speaker) {
+                            speakersInChat.add(speaker);
+                            window.uniqueSpeakers.add(speaker);
+                        }
+                    }
+                }
+                
+                console.log("Found additional speakers in CHAT content:", Array.from(speakersInChat));
+                
+                // If we found speakers, don't show the empty message
+                if (speakersInChat.size > 0) {
+                    console.log("Proceeding with speakers found in CHAT content");
+                    // Continue to the speaker form creation below
+                    // by not returning here
+                } else {
+                    // Still no speakers found, show the message
+                    speakerInputs.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>No speakers found in transcript.</strong> 
+                            <p>This may be because the transcript format doesn't include speaker information or 
+                            because speaker diarization hasn't been processed yet.</p>
+                            <div class="mt-3">
+                                <button id="addSpeakerBtn" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-person-plus"></i> Add Speaker Manually
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Add handler for the manual add button
+                    setTimeout(() => {
+                        const addBtn = document.getElementById('addSpeakerBtn');
+                        if (addBtn) {
+                            addBtn.addEventListener('click', function() {
+                                window.uniqueSpeakers.add('SPEAKER');
+                                window.uniqueSpeakers.add('MOT');
+                                window.uniqueSpeakers.add('CHI');
+                                window.initializeSpeakerMappings();
+                            });
+                        }
+                    }, 100);
+                    
+                    return;
+                }
+            } else {
+                // No chat content, show the message
+                speakerInputs.innerHTML = `
+                    <div class="alert alert-warning">
+                        <strong>No speakers found in transcript.</strong> 
+                        <p>This may be because the transcript format doesn't include speaker information or 
+                        because speaker diarization hasn't been processed yet.</p>
+                        <div class="mt-3">
+                            <button id="addSpeakerBtn" class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-person-plus"></i> Add Speaker Manually
+                            </button>
+                        </div>
+                    </div>
+                `;
+                
+                // Add handler for the manual add button
+                setTimeout(() => {
+                    const addBtn = document.getElementById('addSpeakerBtn');
+                    if (addBtn) {
+                        addBtn.addEventListener('click', function() {
+                            window.uniqueSpeakers.add('SPEAKER');
+                            window.uniqueSpeakers.add('MOT');
+                            window.uniqueSpeakers.add('CHI');
+                            window.initializeSpeakerMappings();
+                        });
+                    }
+                }, 100);
+                
+                return;
+            }
+        } catch (e) {
+            console.error("Error trying to extract speakers from chat content:", e);
+            speakerInputs.innerHTML = `
+                <div class="alert alert-warning">
+                    <strong>No speakers found in transcript.</strong> 
+                    <p>This may be because the transcript format doesn't include speaker information or 
+                    because speaker diarization hasn't been processed yet.</p>
+                    <div class="mt-3">
+                        <button id="addSpeakerBtn" class="btn btn-sm btn-outline-primary">
+                            <i class="bi bi-person-plus"></i> Add Speaker Manually
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            // Add handler for the manual add button 
+            setTimeout(() => {
+                const addBtn = document.getElementById('addSpeakerBtn');
+                if (addBtn) {
+                    addBtn.addEventListener('click', function() {
+                        window.uniqueSpeakers.add('SPEAKER');
+                        window.uniqueSpeakers.add('MOT');
+                        window.uniqueSpeakers.add('CHI');
+                        window.initializeSpeakerMappings();
+                    });
+                }
+            }, 100);
+            
+            return;
+        }
+    }
+    
+    console.log("Adding speaker inputs to form");
+    
     // Add all speakers to the form
-    window.uniqueSpeakers.forEach(speaker => {
+    Array.from(window.uniqueSpeakers).sort().forEach(speaker => {
         const div = document.createElement('div');
-        div.className = 'mb-3';
-        div.innerHTML = `
-            <label class="form-label">${speaker}</label>
-            <input type="text" 
-                   class="form-control" 
-                   name="mapping_${speaker}" 
-                   value="${window.speakerMappings[speaker] || ''}"
-                   placeholder="e.g., MOT, CHI">
-        `;
+        div.className = 'mb-2 d-flex align-items-center';
+        
+        // Create color indicator
+        const colorBox = document.createElement('div');
+        colorBox.className = 'color-box me-2';
+        colorBox.style.width = '16px';
+        colorBox.style.height = '16px';
+        colorBox.style.backgroundColor = window.speakerColors[speaker] || '#6c757d';
+        colorBox.style.borderRadius = '3px';
+        
+        // Create label
+        const label = document.createElement('label');
+        label.className = 'me-2 mb-0';
+        label.style.minWidth = '100px';
+        label.textContent = speaker;
+        
+        // Create input field
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'form-control form-control-sm speaker-input';
+        input.dataset.originalSpeaker = speaker;
+        // Handle both formats: string or object with role/display_name
+        let mappedValue = '';
+        if (window.speakerMappings[speaker]) {
+            if (typeof window.speakerMappings[speaker] === 'string') {
+                // Simple string format (backwards compatibility)
+                mappedValue = window.speakerMappings[speaker];
+            } else if (typeof window.speakerMappings[speaker] === 'object') {
+                // Object format with role and display_name
+                mappedValue = window.speakerMappings[speaker].role || 
+                              window.speakerMappings[speaker].display_name || '';
+            }
+        }
+        input.value = mappedValue;
+        input.placeholder = 'e.g., MOT, CHI';
+        
+        // Assemble the elements
+        div.appendChild(colorBox);
+        div.appendChild(label);
+        div.appendChild(input);
         speakerInputs.appendChild(div);
     });
     
@@ -92,8 +268,10 @@ window.initializeSpeakerMappings = function() {
     if (form) {
         form.onsubmit = function(e) {
             e.preventDefault();
-            updateSpeakerMappings();
+            window.updateSpeakerMappings();
         };
+    } else {
+        console.error("Speaker mapping form not found");
     }
 }
 
@@ -101,15 +279,19 @@ window.initializeSpeakerMappings = function() {
 window.updateSpeakerMappings = async function() {
     // Get form inputs
     const mappings = {};
-    document.querySelectorAll('[name^="mapping_"]').forEach(input => {
-        const speaker = input.name.replace('mapping_', '');
-        mappings[speaker] = {
-            role: input.value.toUpperCase(),
-            display_name: input.value
-        };
+    document.querySelectorAll('.speaker-input').forEach(input => {
+        const originalSpeaker = input.dataset.originalSpeaker;
+        const mappedValue = input.value.trim();
         
-        // Update local speaker mappings
-        window.speakerMappings[speaker] = input.value.toUpperCase();
+        if (mappedValue) {
+            mappings[originalSpeaker] = {
+                role: mappedValue.toUpperCase(),
+                display_name: mappedValue
+            };
+            
+            // Update local speaker mappings
+            window.speakerMappings[originalSpeaker] = mappedValue.toUpperCase();
+        }
     });
     
     try {
@@ -183,6 +365,15 @@ window.applyUpdatedSpeakerMappings = function() {
     // Also refresh the transcript highlighting
     if (typeof window.updateTranscriptHighlight === 'function') {
         window.updateTranscriptHighlight();
+    }
+    
+    // Call the legacy updateTranscriptSpeakerLabels function if it exists (for backward compatibility)
+    if (typeof window.updateTranscriptSpeakerLabels === 'function') {
+        try {
+            window.updateTranscriptSpeakerLabels(window.speakerMappings);
+        } catch (e) {
+            console.warn("Error calling legacy updateTranscriptSpeakerLabels:", e);
+        }
     }
 }
 

@@ -80,6 +80,46 @@ This is a Django web application that provides a user-friendly interface for the
    python manage.py runserver
    ```
 
+## How to Run This Project
+
+### Quick Start Guide
+To get the application running quickly:
+
+1. **Create a virtual environment** (recommended):
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   ```
+
+2. **Install dependencies**:
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+3. **Run the development server**:
+   ```bash
+   python manage.py runserver
+   ```
+   This will start the application usually on http://127.0.0.1:8000/
+
+### Project Structure Explained
+The project follows Django's standard structure:
+- `batchalign_app/`: The main Django project container with settings and configuration
+- `batch_processor/`: The actual Django app that implements the functionality
+- `media/`: Directory where uploaded audio files are stored
+- `staticfiles/`: Compiled static files for production
+
+### Accessing the Application
+After starting the server, you can access:
+- **Home page/Upload**: http://127.0.0.1:8000/
+- **File list**: http://127.0.0.1:8000/list/
+- **Transcript viewer**: http://127.0.0.1:8000/transcript/{transcript_id}/
+
+### Common Issues
+- If audio files fail to process, verify your Rev.ai API key is correctly configured
+- For large audio files, processing may take several minutes
+- Ensure your Python environment has all dependencies from requirements.txt installed
+
 ## Usage
 
 1. Upload Audio Files:

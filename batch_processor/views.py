@@ -41,20 +41,41 @@ def update_speaker_mapping(request, transcript_id):
         try:
             data = json.loads(request.body)
             transcript = Transcript.objects.get(id=transcript_id)
-            mappings = data.get('mappings', {})
             
+            # Handle both formats: 'mappings' (from speaker_mapping.js) or 'speaker_mapping' (from transcript_player.html)
+            mappings = data.get('mappings', {})
+            if not mappings and 'speaker_mapping' in data:
+                # Convert simple format to the detailed format
+                for speaker, role in data['speaker_mapping'].items():
+                    mappings[speaker] = {
+                        'role': role,
+                        'display_name': role
+                    }
+            
+            if not mappings:
+                raise ValueError("No speaker mappings provided in request")
+                
             # Update or create speaker mappings
             transcript.speaker_mapping.all().delete()  # Remove old mappings
             
             # Collect all speakers for header
             participants = []
             for original_id, mapping in mappings.items():
+                # Handle both object format and string format
+                if isinstance(mapping, dict):
+                    role = mapping.get('role', '')
+                    display_name = mapping.get('display_name', role)
+                else:
+                    # If it's a simple string
+                    role = mapping
+                    display_name = mapping
+                
                 speaker_map = SpeakerMap.objects.create(
                     original_id=original_id,
-                    chat_role=mapping['role']
+                    chat_role=role
                 )
                 transcript.speaker_mapping.add(speaker_map)
-                participants.append(f"{mapping['role']} {mapping.get('display_name', mapping['role'])}")
+                participants.append(f"{role} {display_name}")
             
             # Update the header in chat_content
             lines = transcript.chat_content.split('\n')
@@ -69,8 +90,15 @@ def update_speaker_mapping(request, transcript_id):
                     if not header_updated['ids']:
                         # Add @ID lines for all speakers
                         for original_id, mapping in mappings.items():
-                            role = mapping['role']
-                            updated_lines.append(f"@ID:\teng|corpus_name|{role}|||||{mapping.get('display_name', role)}|||")
+                            # Handle both object format and string format
+                            if isinstance(mapping, dict):
+                                role = mapping.get('role', '')
+                                display_name = mapping.get('display_name', role)
+                            else:
+                                role = mapping
+                                display_name = mapping
+                                
+                            updated_lines.append(f"@ID:\teng|corpus_name|{role}|||||{display_name}|||")
                         header_updated['ids'] = True
                 elif not (line.startswith('@ID:') and header_updated['ids']):
                     updated_lines.append(line)
@@ -567,15 +595,32 @@ def view_transcript(request, transcript_id):
         transcript = Transcript.objects.get(id=transcript_id)
         audio_file = transcript.audio
         
-        # Get speaker mappings
-        speaker_mappings = {sm.original_id: sm.chat_role for sm in transcript.speaker_mapping.all()}
+        # Get speaker mappings - use a more detailed format compatible with the JS
+        speaker_mappings = {sm.original_id: {"role": sm.chat_role, "display_name": sm.chat_role} for sm in transcript.speaker_mapping.all()}
         speaker_mappings_json = json.dumps(speaker_mappings)
         
-        # Get all available speakers
-        speakers = []
+        # Get all available speakers from various sources
+        speakers = set()
+        
+        # 1. Get speakers from diarization data
         if transcript.diarization_data:
-            speakers = list(set(seg['speaker'] for seg in transcript.diarization_data))
-        speakers_json = json.dumps(speakers)
+            speakers.update(seg['speaker'] for seg in transcript.diarization_data if seg.get('speaker'))
+        
+        # 2. Get speakers from existing speaker mappings
+        speakers.update(sm.original_id for sm in transcript.speaker_mapping.all())
+            
+        # 3. Extract speakers from transcript content
+        if transcript.chat_content:
+            # Look for lines like "*MOT:" in the CHAT format
+            for line in transcript.chat_content.split('\n'):
+                if line.startswith('*') and ':' in line:
+                    speaker = line[1:line.index(':')].strip()
+                    if speaker:
+                        speakers.add(speaker)
+        
+        # Convert to sorted list and create JSON
+        speakers_list = sorted(list(speakers))
+        speakers_json = json.dumps(speakers_list)
         
         # Get audio URL - Fix the audio URL path
         audio_url = None

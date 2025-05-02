@@ -2,6 +2,9 @@
  * Transcript Display functionality for the Transcript Player
  */
 
+// Global variables for transcript display
+window.uniqueSpeakers = new Set();
+
 // Make initialization function global
 window.initializeTranscriptDisplay = function() {
     console.log("Initializing transcript display");
@@ -68,12 +71,43 @@ window.initializeTranscriptDisplay = function() {
         };
     }
     
+    // Initialize the autoScroll toggle
+    const autoScrollToggle = document.getElementById('autoScrollToggle');
+    if (autoScrollToggle) {
+        // Set global auto-scroll variable
+        window.autoScroll = autoScrollToggle.checked;
+        
+        // Add event listener
+        autoScrollToggle.addEventListener('change', function() {
+            window.autoScroll = this.checked;
+            console.log("Auto-scroll set to:", window.autoScroll);
+        });
+    }
+    
     // Setup transcript highlighting function
     setupTranscriptHighlighting();
     
     console.log("Transcript display initialization complete");
 }
 
+// Setup transcript highlighting
+function setupTranscriptHighlighting() {
+    // Define global highlight function - this is the main entry point
+    // that gets called from audio_player.js
+    window.highlightTranscriptAtTime = function(currentTimeMs) {
+        updateTranscriptHighlight(currentTimeMs);
+    };
+    
+    // Make sure we don't overwrite the function in the main HTML file
+    if (window.updateTranscriptHighlight === null) {
+        // Only define this if it's not already defined
+        window.updateTranscriptHighlight = function(currentTimeMs) {
+            updateTranscriptHighlight(currentTimeMs);
+        };
+    }
+}
+
+// Display CHAT format content
 function displayChatContent(content) {
     console.log("Displaying CHAT content");
     const lines = content.split('\n');
@@ -117,14 +151,18 @@ function displayChatContent(content) {
             const colonIndex = line.indexOf(':');
             if (colonIndex > 0) {
                 const originalSpeaker = line.substring(1, colonIndex).trim();
-                uniqueSpeakers.add(originalSpeaker);
+                window.uniqueSpeakers.add(originalSpeaker);
                 
                 utteranceLine.dataset.speaker = originalSpeaker;
                 
                 // Extract text and timestamp
                 let text = line.substring(colonIndex + 1).trim();
+                console.log(`Processing line: "${text}"`);
                 
-                // Look for timestamp at the end (format: 18805_22745)
+                // Try multiple timestamp formats, from most common to least common
+                let timestampFound = false;
+                
+                // Format 1: Check for standard format "word word word 12345_67890"
                 const words = text.split(' ');
                 const lastWord = words[words.length - 1];
                 
@@ -141,9 +179,12 @@ function displayChatContent(content) {
                     words.pop();
                     text = words.join(' ');
                     
-                    console.log(`Found timestamp: ${startTime}-${endTime}ms for line: ${text}`);
-                } else {
-                    // Try to find [start-end] format
+                    console.log(`Found timestamp Format 1: ${startTime}-${endTime}ms for line: "${text}"`);
+                    timestampFound = true;
+                }
+                
+                // Format 2: Check for [12345-67890] format
+                if (!timestampFound) {
                     const timestampMatch = text.match(/\[(\d+)-(\d+)\]/);
                     if (timestampMatch && timestampMatch.length >= 3) {
                         const startTime = parseInt(timestampMatch[1]);
@@ -155,26 +196,88 @@ function displayChatContent(content) {
                         // Remove timestamp from displayed text
                         text = text.replace(/\[\d+-\d+\]/, '');
                         
-                        console.log(`Found timestamp: ${startTime}-${endTime}ms for line: ${text}`);
+                        console.log(`Found timestamp Format 2: ${startTime}-${endTime}ms for line: "${text}"`);
+                        timestampFound = true;
                     }
+                }
+                
+                // Format 3: Check for text like "this \00152395_26885\0015"
+                if (!timestampFound) {
+                    // Look for the specific format seen in the screenshot with \0015NNNN\0015 pattern
+                    const backslashTimestampMatch = text.match(/\\0*15(\d+)_(\d+)\\0*15/);
+                    if (backslashTimestampMatch && backslashTimestampMatch.length >= 3) {
+                        const startTime = parseInt(backslashTimestampMatch[1]);
+                        const endTime = parseInt(backslashTimestampMatch[2]);
+                        
+                        utteranceLine.dataset.start = startTime;
+                        utteranceLine.dataset.end = endTime;
+                        
+                        // Don't remove this from displayed text as it may be part of the transcript content
+                        console.log(`Found timestamp Format 3: ${startTime}-${endTime}ms using backslash pattern`);
+                        timestampFound = true;
+                    }
+                }
+                
+                // Try additional backslash format with just start time
+                if (!timestampFound) {
+                    const singleTimestampMatch = text.match(/\\0*15(\d+)\\0*15/);
+                    if (singleTimestampMatch && singleTimestampMatch.length >= 2) {
+                        const startTime = parseInt(singleTimestampMatch[1]);
+                        const endTime = startTime + 5000; // Add 5 seconds as default
+                        
+                        utteranceLine.dataset.start = startTime;
+                        utteranceLine.dataset.end = endTime;
+                        
+                        console.log(`Found timestamp Format 3b: ${startTime}-${endTime}ms using single number backslash pattern`);
+                        timestampFound = true;
+                    }
+                }
+                
+                // Format 4: Look for timestamp in the line itself using regular expressions
+                if (!timestampFound) {
+                    // Look for any numbers that could be timestamps (5+ digit numbers)
+                    const timeMatches = text.match(/\b(\d{5,})\b/g);
+                    if (timeMatches && timeMatches.length >= 1) {
+                        const startTime = parseInt(timeMatches[0]);
+                        const endTime = timeMatches.length > 1 ? parseInt(timeMatches[1]) : startTime + 5000;
+                        
+                        utteranceLine.dataset.start = startTime;
+                        utteranceLine.dataset.end = endTime;
+                        
+                        console.log(`Found timestamp Format 4: ${startTime}-${endTime}ms from numeric values in text`);
+                        timestampFound = true;
+                    }
+                }
+                
+                // Debug if no timestamp was found
+                if (!timestampFound) {
+                    console.warn(`No timestamp found for line: "${text}"`);
                 }
                 
                 // Set click handler if we have a timestamp
                 if (utteranceLine.dataset.start) {
                     utteranceLine.addEventListener('click', function() {
                         console.log(`Seeking to time: ${utteranceLine.dataset.start}ms`);
-                        seekToTime(utteranceLine.dataset.start);
+                        if (typeof window.seekToTime === 'function') {
+                            window.seekToTime(parseInt(utteranceLine.dataset.start));
+                        }
                     });
                 }
                 
                 // Get mapped speaker
-                const mappedSpeaker = speakerMappings[originalSpeaker] || originalSpeaker;
+                const mappedSpeaker = window.speakerMappings && window.speakerMappings[originalSpeaker] ? window.speakerMappings[originalSpeaker] : originalSpeaker;
                 utteranceLine.dataset.mappedSpeaker = mappedSpeaker;
                 
                 // Create speaker label with mapped speaker
                 const speakerLabel = document.createElement('span');
                 speakerLabel.className = 'speaker-label';
                 speakerLabel.textContent = `*${mappedSpeaker}:`;
+                
+                // Apply speaker color if available
+                if (window.speakerColors && window.speakerColors[originalSpeaker]) {
+                    speakerLabel.style.color = window.speakerColors[originalSpeaker];
+                }
+                
                 utteranceLine.appendChild(speakerLabel);
                 
                 // Create timestamp display
@@ -188,9 +291,19 @@ function displayChatContent(content) {
                 // Create text content
                 const textContent = document.createElement('span');
                 textContent.className = 'utterance-text';
-                textContent.textContent = text;
-                utteranceLine.appendChild(textContent);
                 
+                // Split text into words for potential highlighting
+                const textWords = text.split(' ');
+                textWords.forEach((word, i) => {
+                    if (word.trim() === '') return;
+                    
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'transcript-word';
+                    wordSpan.textContent = word + (i < textWords.length - 1 ? ' ' : '');
+                    textContent.appendChild(wordSpan);
+                });
+                
+                utteranceLine.appendChild(textContent);
                 transcriptContainer.appendChild(utteranceLine);
                 lastUtteranceLine = utteranceLine;
             }
@@ -230,238 +343,132 @@ function displayChatContent(content) {
     }
 }
 
-function parseWordTimings(worLine) {
-    const wordTimings = [];
-    const parts = worLine.split(' ');
+// Display diarization segments
+function displaySegments(segments) {
+    console.log("Displaying segments:", segments.length);
+    const transcriptContainer = document.getElementById('transcriptContainer');
     
-    for (let i = 0; i < parts.length; i++) {
-        // Look for timing pattern like "word 1234_5678"
-        if (i < parts.length - 1 && parts[i+1] && parts[i+1].match(/^\d+_\d+$/)) {
-            const word = parts[i];
-            const timing = parts[i+1];
-            const times = timing.split('_');
-            
-            if (times.length === 2 && !isNaN(times[0]) && !isNaN(times[1])) {
-                wordTimings.push({
-                    word: word,
-                    start: parseInt(times[0]),
-                    end: parseInt(times[1])
-                });
-            }
-            i++; // Skip the timing part
-        }
+    if (!transcriptContainer) {
+        console.error("Transcript container not found");
+        return;
     }
     
-    return wordTimings;
-}
-
-function displaySegments(segments) {
-    console.log("Displaying segments data");
-    const transcriptContainer = document.getElementById('transcriptContainer');
+    // Clear existing content
     transcriptContainer.innerHTML = '';
     
     // Sort segments by start time
     segments.sort((a, b) => a.start - b.start);
     
-    // Get missing segments if available
-    let missingSegmentsData = document.getElementById('missingSegmentsData');
-    let missingSegmentsContent = missingSegmentsData ? missingSegmentsData.value : '[]';
-    let missingSegments = [];
-    
-    if (missingSegmentsContent && missingSegmentsContent.trim() !== "") {
-        try {
-            missingSegments = JSON.parse(missingSegmentsContent);
-            console.log(`Found ${missingSegments.length} missing segments`);
-        } catch (e) {
-            console.error("Error parsing missing segments JSON:", e);
-        }
-    }
-    
-    // Merge regular segments and missing segments in chronological order
-    const allSegments = [...segments];
-    
-    missingSegments.forEach(segment => {
-        allSegments.push({
-            ...segment,
-            isMissing: true
+    // Process segments
+    segments.forEach((segment, index) => {
+        if (!segment.speaker) return;
+        
+        const segmentElement = document.createElement('div');
+        segmentElement.className = 'transcript-line';
+        segmentElement.dataset.line = index;
+        segmentElement.dataset.speaker = segment.speaker;
+        segmentElement.dataset.start = segment.start;
+        segmentElement.dataset.end = segment.end;
+        
+        // Add click handler for seeking
+        segmentElement.addEventListener('click', function() {
+            console.log(`Seeking to segment: ${segment.start}ms`);
+            if (typeof window.seekToTime === 'function') {
+                window.seekToTime(segment.start);
+            }
         });
-    });
-    
-    // Sort all segments by start time
-    allSegments.sort((a, b) => a.start - b.start);
-    
-    // Display all segments
-    allSegments.forEach(segment => {
-        if (segment.isMissing) {
-            // Create missing segment element
-            const missingLine = document.createElement('div');
-            missingLine.className = 'missing-segment';
-            missingLine.dataset.start = segment.start;
-            missingLine.dataset.end = segment.end;
-            missingLine.dataset.speaker = segment.speaker;
-            
-            // Add click handler for seeking
-            missingLine.addEventListener('click', function(e) {
-                // Don't trigger if clicking on the edit button
-                if (e.target.tagName === 'BUTTON') return;
-                
-                console.log(`Seeking to time: ${segment.start}ms`);
-                seekToTime(segment.start);
-            });
-            
-            // Add double-click handler for editing
-            missingLine.addEventListener('dblclick', function() {
-                toggleMissingSegmentEdit(missingLine);
-            });
+        
+        // Get mapped speaker
+        const mappedSpeaker = window.speakerMappings && window.speakerMappings[segment.speaker] ? 
+            window.speakerMappings[segment.speaker] : segment.speaker;
+        segmentElement.dataset.mappedSpeaker = mappedSpeaker;
+        
+        // Create speaker label
+        const speakerLabel = document.createElement('span');
+        speakerLabel.className = 'speaker-label';
+        speakerLabel.textContent = mappedSpeaker;
+        
+        // Apply speaker color if available
+        if (window.speakerColors && window.speakerColors[segment.speaker]) {
+            speakerLabel.style.color = window.speakerColors[segment.speaker];
+        }
+        
+        segmentElement.appendChild(speakerLabel);
             
             // Create timestamp
             const timestamp = document.createElement('span');
             timestamp.className = 'transcript-timestamp';
             timestamp.textContent = formatTime(segment.start / 1000);
-            
-            // Create icon
-            const icon = document.createElement('span');
-            icon.className = 'missing-segment-icon';
-            icon.innerHTML = '<i class="bi bi-exclamation-triangle-fill"></i>';
+        segmentElement.appendChild(timestamp);
             
             // Create text content
             const textContent = document.createElement('span');
-            textContent.className = 'missing-segment-text';
-            textContent.textContent = `Missing content (${segment.speaker})`;
-            
-            // Create edit button
-            const editButton = document.createElement('button');
-            editButton.className = 'btn btn-sm btn-outline-primary ms-2';
-            editButton.innerHTML = '<i class="bi bi-pencil"></i>';
-            editButton.addEventListener('click', function() {
-                toggleMissingSegmentEdit(missingLine);
-            });
-            
-            // Create edit form
-            const editForm = document.createElement('div');
-            editForm.className = 'missing-segment-edit';
-            editForm.innerHTML = `
-                <div class="input-group">
-                    <input type="text" class="form-control" placeholder="Enter missing content...">
-                    <button class="btn btn-primary save-missing" type="button">Save</button>
-                    <button class="btn btn-secondary cancel-missing" type="button">Cancel</button>
+        textContent.className = 'utterance-text';
+        textContent.textContent = segment.text || '(no text)';
+        segmentElement.appendChild(textContent);
+        
+        transcriptContainer.appendChild(segmentElement);
+    });
+    
+    // If no segments were processed, show message
+    if (segments.length === 0) {
+        transcriptContainer.innerHTML = `
+            <div class="alert alert-warning">
+                <strong>Warning:</strong> No diarization segments found.
                 </div>
             `;
-            
-            // Add event listeners to edit form buttons
-            editForm.querySelector('.save-missing').addEventListener('click', function() {
-                saveMissingSegment(missingLine);
-            });
-            
-            editForm.querySelector('.cancel-missing').addEventListener('click', function() {
-                toggleMissingSegmentEdit(missingLine);
-            });
-            
-            // Assemble the missing segment element
-            missingLine.appendChild(timestamp);
-            missingLine.appendChild(icon);
-            missingLine.appendChild(textContent);
-            missingLine.appendChild(editButton);
-            missingLine.appendChild(editForm);
-            
-            transcriptContainer.appendChild(missingLine);
-        } else {
-            // Regular segment
-            const line = document.createElement('div');
-            line.className = 'transcript-line';
-            line.dataset.start = segment.start;
-            line.dataset.end = segment.end;
-            
-            // Use addEventListener instead of onclick
-            line.addEventListener('click', function() {
-                console.log(`Seeking to time: ${segment.start}ms`);
-                seekToTime(segment.start);
-            });
-            
-            // Add speaker to unique speakers set
-            if (segment.speaker) {
-                uniqueSpeakers.add(segment.speaker);
-            }
-            
-            const timestamp = document.createElement('span');
-            timestamp.className = 'transcript-timestamp';
-            timestamp.textContent = formatTime(segment.start / 1000);
-            
-            // Apply speaker mapping if available
-            const originalSpeaker = segment.speaker;
-            const mappedSpeaker = speakerMappings[originalSpeaker] || originalSpeaker;
-            
-            line.dataset.speaker = originalSpeaker;
-            line.dataset.mappedSpeaker = mappedSpeaker;
-            
-            const speaker = document.createElement('span');
-            speaker.className = 'speaker-label';
-            speaker.textContent = mappedSpeaker;
-            
-            const text = document.createElement('span');
-            text.className = 'utterance-text';
-            text.textContent = segment.text || '';
-            
-            line.appendChild(timestamp);
-            line.appendChild(speaker);
-            line.appendChild(text);
-            
-            transcriptContainer.appendChild(line);
-        }
-    });
+    }
 }
 
-// Setup the transcript highlighting functionality
-function setupTranscriptHighlighting() {
-    // Define the global transcript highlight function
-    window.updateTranscriptHighlight = function() {
-        if (!window.player || isNaN(window.player.currentTime)) {
-            console.warn("Player not ready for transcript highlighting");
+// Function to update transcript highlighting with proper auto-scroll integration
+function updateTranscriptHighlight(currentTimeMs) {
+    if (!currentTimeMs) {
+        console.warn("No current time provided to updateTranscriptHighlight");
+        return;
+    }
+    
+    const transcriptLines = document.querySelectorAll('.transcript-line[data-start]');
+    if (transcriptLines.length === 0) {
+        console.debug("No transcript lines with timestamps found");
             return;
         }
         
-        const currentTime = window.player.currentTime * 1000; // Convert to milliseconds
-        
-        // Find all possible timestamp-containing lines
-        const transcriptLines = document.querySelectorAll('.transcript-line:not(.comment-line)');
-        if (transcriptLines.length === 0) return;
-        
         // First remove any existing active/next-up classes
-        document.querySelectorAll('.active, .next-up').forEach(el => {
+    document.querySelectorAll('.transcript-line.active, .transcript-line.next-up').forEach(el => {
             el.classList.remove('active', 'next-up');
         });
         
-        // Simple state tracking for our search
+    // Track state for our search
         let activeElement = null;
         let closestPastLine = null;
         let closestPastDistance = Infinity;
         let nextUpLine = null;
         let nextUpDistance = Infinity;
         
-        // Scan all transcript lines to find the appropriate one
+    // Scan all transcript lines with time data to find the appropriate one
         transcriptLines.forEach(line => {
             // Skip lines without timing data
             if (!line.dataset.start) return;
             
-            const start = parseFloat(line.dataset.start);
-            const end = line.dataset.end ? parseFloat(line.dataset.end) : start + 10000; // Default 10sec if no end
+        const start = parseInt(line.dataset.start);
+        const end = line.dataset.end ? parseInt(line.dataset.end) : start + 10000; // Default 10sec if no end
             
             // Check if this line is active (current time is within its range)
-            if (currentTime >= start && currentTime <= end) {
+        if (currentTimeMs >= start && currentTimeMs <= end) {
                 line.classList.add('active');
                 activeElement = line;
             }
             // Track closest past line for fallback
-            else if (start < currentTime) {
-                const distance = currentTime - start;
+        else if (start < currentTimeMs) {
+            const distance = currentTimeMs - start;
                 if (distance < closestPastDistance) {
                     closestPastDistance = distance;
                     closestPastLine = line;
                 }
             }
             // Track upcoming line for "next up" indicator
-            else if (start > currentTime) {
-                const distance = start - currentTime;
+        else if (start > currentTimeMs) {
+            const distance = start - currentTimeMs;
                 if (distance < nextUpDistance) {
                     nextUpDistance = distance;
                     nextUpLine = line;
@@ -469,19 +476,16 @@ function setupTranscriptHighlighting() {
             }
         });
         
-        // Check if auto-scroll is enabled
-        const autoScrollEnabled = document.getElementById('autoScrollToggle').checked;
-        
         // If we found an active element, scroll to it if auto-scroll is enabled
         if (activeElement) {
-            if (autoScrollEnabled) {
+        if (window.autoScroll) {
                 scrollToElement(activeElement);
             }
         }
         // Otherwise, fallback to closest past line
         else if (closestPastLine) {
             closestPastLine.classList.add('active');
-            if (autoScrollEnabled) {
+        if (window.autoScroll) {
                 scrollToElement(closestPastLine);
             }
         }
@@ -490,73 +494,140 @@ function setupTranscriptHighlighting() {
         if (nextUpLine && nextUpDistance < 5000) {
             nextUpLine.classList.add('next-up');
         }
-    };
-    
-    // Do an initial highlighting pass
-    window.updateTranscriptHighlight();
 }
 
 // Helper function to scroll the transcript to a specific element
 function scrollToElement(element) {
     if (!element) return;
     
+    // First check if auto-scroll is enabled
+    if (window.autoScroll !== true) {
+        return;
+    }
+    
+    const container = document.getElementById('transcriptContainer');
+    if (!container) {
+        console.error("Transcript container not found for auto-scrolling");
+        return;
+    }
+    
     try {
-        const container = document.getElementById('transcriptContainer');
-        if (!container) return;
-        
-        // Simple approach - scroll element into center view
+        // Get the position of the element relative to the container
         const elementTop = element.offsetTop;
         const containerHeight = container.clientHeight;
+        const elementHeight = element.offsetHeight;
         
-        // Center the element
-        container.scrollTop = elementTop - (containerHeight / 2) + (element.offsetHeight / 2);
+        // Calculate scroll position to center the element
+        const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
+        
+        // Smoothly scroll to the position
+        container.scrollTo({
+            top: scrollPosition,
+            behavior: 'smooth'
+        });
+        
+        // Add a subtle visual highlight pulse
+        element.style.transition = 'background-color 0.3s ease';
+        const originalBg = element.style.backgroundColor;
+        element.style.backgroundColor = 'rgba(0, 123, 255, 0.2)';
+        
+        // Reset the highlight after a moment
+        setTimeout(() => {
+            element.style.backgroundColor = originalBg;
+        }, 1000);
     } catch (error) {
         console.error("Error scrolling to element:", error);
-        // Fallback
+        // Fallback scrolling
         try {
-            element.scrollIntoView({block: 'center'});
+            element.scrollIntoView({
+                behavior: 'smooth',
+                block: 'center'
+            });
         } catch (e) {
-            // Ignore if this fails too
+            console.error("Fallback scrolling also failed:", e);
         }
     }
 }
 
-// Add a new function to highlight individual words based on timing
-function highlightWords(lineElement, wordTimings, currentTime) {
-    // Get the text content element
-    const textElement = lineElement.querySelector('.utterance-text');
-    if (!textElement) return;
-    
-    // If this is the first time highlighting, save the original text
-    if (!lineElement.dataset.originalText) {
-        lineElement.dataset.originalText = textElement.textContent;
+// Helper function for formatting time - this is a backup in case the global one isn't available
+function formatTime(seconds) {
+    if (typeof window.formatTime === 'function') {
+        return window.formatTime(seconds);
     }
     
-    // Create a new HTML content with highlighted words
-    let newHtml = '';
-    let anyHighlighted = false;
-    
-    // Sort word timings by start time to ensure correct order
-    const sortedTimings = [...wordTimings].sort((a, b) => a.start - b.start);
-    
-    for (const wordTiming of sortedTimings) {
-        const { word, start, end } = wordTiming;
-        
-        // Determine if this word should be highlighted
-        const isActive = currentTime >= start && currentTime <= end;
-        const className = isActive ? 'highlighted-word' : '';
-        
-        if (isActive) anyHighlighted = true;
-        
-        newHtml += `<span class="${className}">${word} </span>`;
+    if (isNaN(seconds)) return "00:00";
+    const minutes = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${minutes}:${secs.toString().padStart(2, '0')}`;
+}
+
+// Helper function to extract CHAT format timestamps from text with backslashes
+function extractChatTimestamps(text) {
+    // The format appears to be \u0015NUMBERS_NUMBERS\u0015
+    // First, look for the pattern of backslash + digits with underscore + backslash
+    const fullMatch = text.match(/\\u?0*15(\d+)_(\d+)\\u?0*15/);
+    if (fullMatch && fullMatch.length >= 3) {
+        return {
+            start: parseInt(fullMatch[1]),
+            end: parseInt(fullMatch[2])
+        };
     }
     
-    // Update the text content with the new HTML only if we have word timings
-    // and at least one word is highlighted
-    if (newHtml && anyHighlighted) {
-        textElement.innerHTML = newHtml;
-    } else if (lineElement.dataset.originalText && !anyHighlighted) {
-        // Restore original text if no words are highlighted
-        textElement.textContent = lineElement.dataset.originalText;
+    // Try alternate pattern with just one number
+    const singleMatch = text.match(/\\u?0*15(\d+)\\u?0*15/);
+    if (singleMatch && singleMatch.length >= 2) {
+        const startTime = parseInt(singleMatch[1]);
+        return {
+            start: startTime,
+            end: startTime + 5000 // Approximate 5 seconds
+        };
     }
-} 
+    
+    return null;
+}
+
+// Also add this to dynamically initialize timestamps if they weren't found on initial load
+function initializeTimestampsPostLoad() {
+    console.log("Initializing timestamps post-load");
+    const transcriptLines = document.querySelectorAll('.transcript-line:not([data-start])');
+    let timestampsFound = 0;
+    
+    transcriptLines.forEach(line => {
+        const text = line.textContent || '';
+        
+        // Try to find timestamps in the text content using our various extraction methods
+        const timestamps = extractChatTimestamps(text);
+        if (timestamps) {
+            line.dataset.start = timestamps.start;
+            line.dataset.end = timestamps.end;
+            timestampsFound++;
+            
+            // Add timestamp display element if needed
+            if (!line.querySelector('.transcript-timestamp')) {
+                const timestamp = document.createElement('span');
+                timestamp.className = 'transcript-timestamp';
+                timestamp.textContent = formatTime(timestamps.start / 1000);
+                line.appendChild(timestamp);
+            }
+            
+            // Add click handler
+            line.addEventListener('click', function() {
+                console.log(`Seeking to time: ${line.dataset.start}ms`);
+                if (typeof window.seekToTime === 'function') {
+                    window.seekToTime(parseInt(line.dataset.start));
+                }
+            });
+        }
+    });
+    
+    console.log(`Post-load initialization found ${timestampsFound} timestamps`);
+    return timestampsFound;
+}
+
+// Call the initialization function after the transcript is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Wait for transcript to load
+    setTimeout(function() {
+        initializeTimestampsPostLoad();
+    }, 2000); // 2 second delay to ensure transcript is loaded
+}); 

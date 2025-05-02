@@ -1,0 +1,83 @@
+# Batchalign Web App Development Time Estimation
+Date: 02/28/2025
+
+## COMPLETED WORK (120-160 HOURS)
+
+1. Initial planning and design (10-15 hours):
+   - Requirements gathering and documentation
+   - Architectural design
+   - UI/UX sketching
+
+2. Core Django application setup (10-15 hours):
+   - Project structure creation
+   - Database models design
+   - URL routing and basic view setup
+
+3. Batchalign integration (20-25 hours):
+   - Rev.ai ASR integration
+   - Pyannote speaker diarization implementation
+   - CHAT format generation and parsing
+   - Error handling and API key management
+
+4. Frontend development (30-40 hours):
+   - Interactive transcript player
+   - Audio playback with visualization
+   - Speaker mapping interface
+   - File upload system
+   - Missing segments detection and handling
+
+5. Testing and debugging (25-30 hours):
+   - Cross-browser compatibility
+   - Testing with various audio formats
+   - API integration testing
+   - Performance optimization
+
+6. Refinements and enhancements (25-35 hours):
+   - Improving transcript visualization
+   - Adding keyboard shortcuts
+   - Enhancing speaker diarization
+   - Adding CHAT format support and export
+   - Missing segments visualization
+
+## REMAINING WORK (100-120 HOURS)
+
+1. Forced alignment graphical interface (40-50 hours):
+   - Implementing the forced alignment module with batchalign
+   - Creating a visual interface to display phoneme/word alignments
+   - Building interactive tools to adjust/correct alignments
+   - Handling edge cases and alignment errors
+   - Developing visualization for multi-speaker aligned content
+
+2. Frontend visualization refinements (20-30 hours):
+   - Improving existing transcript visualization
+   - Integrating forced alignment visualization with the transcript player
+   - Creating intuitive UI controls for alignment manipulation
+   - Performance optimizations for complex visualizations
+
+3. Testing with forced alignment (15-20 hours):
+   - Testing alignment accuracy with various audio qualities
+   - Edge case handling for different languages/accents
+   - Performance testing with longer recordings
+   - Cross-browser compatibility testing
+
+4. Documentation and deployment (15-20 hours):
+   - Creating user documentation specific to forced alignment features
+   - Deployment packaging and environment setup
+   - Training materials for School of Psychology users
+
+## TOTAL PROJECT EFFORT
+
+- Work completed: 120-160 hours
+- Remaining work: 100-120 hours
+- Total project estimation: 220-280 hours
+
+## NOTES
+
+The remaining work involves significant development challenges, particularly:
+- Building sophisticated interactive visualizations for forced alignment
+- Ensuring accurate synchronization between audio and text at phoneme/word level
+- Creating intuitive interfaces for researchers to correct alignments
+- Optimizing performance for complex visualizations and longer recordings
+- Testing with real-world data from the School of Psychology
+
+The forced alignment component requires specialized development skills and domain knowledge of linguistics and audio processing, which adds complexity beyond standard web development.

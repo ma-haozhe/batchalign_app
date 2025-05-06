@@ -1,0 +1,245 @@
+{% extends "batch_processor/base.html" %}
+{% load static %}
+
+{% block title %}Forced Alignment{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Forced Alignment</h1>
+            <p class="lead">Align your transcripts with audio at the word level for precise timing</p>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Start New Alignment</h4>
+        </div>
+        <div class="card-body">
+            <form id="alignmentForm">
+                <div class="mb-3">
+                    <label for="transcriptSelect" class="form-label">Select Transcript</label>
+                    <select class="form-select" id="transcriptSelect" required>
+                        <option value="">Choose a transcript...</option>
+                        {% for transcript in transcripts %}
+                        <option value="{{ transcript.id }}">{{ transcript.audio.title }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="engineSelect" class="form-label">Alignment Engine</label>
+                    <select class="form-select" id="engineSelect">
+                        <option value="AUTO" selected>Auto (Recommended)</option>
+                        <option value="WHISPER">Whisper (Better for non-English)</option>
+                        <option value="WAV2VEC">Wav2Vec (Faster for English)</option>
+                    </select>
+                    <div class="form-text">
+                        Auto will choose Wav2Vec for English audio and Whisper for other languages.
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary">Start Alignment</button>
+            </form>
+            <div id="alignmentStatus" class="mt-3"></div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h4>Recent Alignment Tasks</h4>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>Transcript</th>
+                            <th>Engine</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for task in alignment_tasks %}
+                        <tr>
+                            <td>{{ task.original_transcript.audio.title }}</td>
+                            <td><span class="badge bg-secondary">{{ task.get_engine_used_display }}</span></td>
+                            <td>
+                                {% if task.status == 'COMPLETED' %}
+                                <span class="badge bg-success">Completed</span>
+                                {% elif task.status == 'PROCESSING' %}
+                                <span class="badge bg-warning">Processing</span>
+                                {% elif task.status == 'PENDING' %}
+                                <span class="badge bg-info">Pending</span>
+                                {% elif task.status == 'FAILED' %}
+                                <span class="badge bg-danger">Failed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ task.created_at|date:"M d, Y H:i" }}</td>
+                            <td>
+                                {% if task.status == 'COMPLETED' %}
+                                <a href="{% url 'forced_alignment:detail' task.id %}" class="btn btn-sm btn-primary">View Results</a>
+                                {% elif task.status == 'FAILED' %}
+                                <button class="btn btn-sm btn-danger" onclick="showError('{{ task.id }}')">Show Error</button>
+                                {% else %}
+                                <button class="btn btn-sm btn-info" onclick="checkStatus('{{ task.id }}')">Check Status</button>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="5" class="text-center">No alignment tasks yet. Start one above!</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Error Modal -->
+<div class="modal fade" id="errorModal" tabindex="-1" aria-labelledby="errorModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="errorModalLabel">Error Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="errorModalBody">
+                Error message will appear here
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Form submission
+        document.getElementById('alignmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const transcriptId = document.getElementById('transcriptSelect').value;
+            const engine = document.getElementById('engineSelect').value;
+            
+            if (!transcriptId) {
+                document.getElementById('alignmentStatus').innerHTML = 
+                    '<div class="alert alert-danger">Please select a transcript</div>';
+                return;
+            }
+            
+            // Show loading
+            document.getElementById('alignmentStatus').innerHTML = 
+                '<div class="alert alert-info">Starting alignment task...</div>';
+            
+            // Submit to API
+            fetch('{% url "forced_alignment:start_alignment" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCookie('csrftoken')
+                },
+                body: JSON.stringify({
+                    transcript_id: transcriptId,
+                    engine: engine
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('alignmentStatus').innerHTML = 
+                        `<div class="alert alert-success">
+                            Alignment task started successfully! 
+                            <button class="btn btn-sm btn-info ms-2" onclick="checkStatus('${data.task_id}')">
+                                Check Status
+                            </button>
+                        </div>`;
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    document.getElementById('alignmentStatus').innerHTML = 
+                        `<div class="alert alert-danger">Error: ${data.message}</div>`;
+                }
+            })
+            .catch(error => {
+                document.getElementById('alignmentStatus').innerHTML = 
+                    `<div class="alert alert-danger">Error: ${error.message}</div>`;
+            });
+        });
+    });
+    
+    // Function to check alignment status
+    function checkStatus(taskId) {
+        fetch(`{% url "forced_alignment:check_status" 0 %}`.replace('0', taskId))
+            .then(response => response.json())
+            .then(data => {
+                // Show status as alert
+                let alertClass = 'alert-info';
+                let message = `Status: ${data.status}`;
+                
+                if (data.status === 'COMPLETED') {
+                    alertClass = 'alert-success';
+                    message = 'Alignment completed successfully! Refreshing page...';
+                    
+                    // Reload page after a short delay
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else if (data.status === 'FAILED') {
+                    alertClass = 'alert-danger';
+                    message = `Alignment failed. Error: ${data.error_message}`;
+                }
+                
+                alert(`${data.status}`);
+                
+                // In a more sophisticated UI, you could update a status element instead
+            })
+            .catch(error => {
+                alert(`Error checking status: ${error.message}`);
+            });
+    }
+    
+    // Function to show error details
+    function showError(taskId) {
+        fetch(`{% url "forced_alignment:check_status" 0 %}`.replace('0', taskId))
+            .then(response => response.json())
+            .then(data => {
+                if (data.error_message) {
+                    document.getElementById('errorModalBody').textContent = data.error_message;
+                    var errorModal = new bootstrap.Modal(document.getElementById('errorModal'));
+                    errorModal.show();
+                } else {
+                    alert('No error information available');
+                }
+            })
+            .catch(error => {
+                alert(`Error fetching details: ${error.message}`);
+            });
+    }
+    
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
+{% endblock %}

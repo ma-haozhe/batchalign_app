@@ -1,0 +1,184 @@
+{% extends "batch_processor/base.html" %}
+{% load static %}
+
+{% block title %}Forced Alignment Results{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row mb-4">
+        <div class="col">
+            <h1>Forced Alignment Results</h1>
+            <p class="lead">
+                Transcript: <strong>{{ task.original_transcript.audio.title }}</strong> | 
+                Engine: <strong>{{ task.get_engine_used_display }}</strong> |
+                Status: <strong>{{ task.get_status_display }}</strong>
+            </p>
+            <a href="{% url 'forced_alignment:index' %}" class="btn btn-primary mb-3">
+                <i class="fas fa-arrow-left"></i> Back to Forced Alignment
+            </a>
+        </div>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h4>Word-Level Alignment Results</h4>
+        </div>
+        <div class="card-body">
+            {% if task.status == 'COMPLETED' and task.word_timestamps %}
+                <div class="alert alert-info">
+                    <strong>Instructions:</strong> Click on any word to play from that timestamp.
+                </div>
+                
+                <div class="mb-4">
+                    <audio id="audioPlayer" controls>
+                        <source src="{{ task.original_transcript.audio.audio_file.url }}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                
+                <div id="transcriptWithTimestamps" class="p-3 bg-light rounded">
+                    {% for item in task.word_timestamps %}
+                        <span 
+                            class="word-item" 
+                            data-start="{{ item.start }}" 
+                            data-end="{{ item.end }}"
+                            data-utterance="{{ item.utterance_id|default:0 }}"
+                            onclick="seekAudio({{ item.start }})"
+                        >
+                            {{ item.word }}{% if forloop.last or task.word_timestamps|slice:forloop.counter|first|default:item.utterance_id != item.utterance_id %}<br>{% endif %}
+                        </span>
+                    {% endfor %}
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-sm btn-primary" onclick="toggleWordBreaks()">
+                        <span id="breakBtnText">Show Line Breaks</span>
+                    </button>
+                </div>
+            {% elif task.status == 'FAILED' %}
+                <div class="alert alert-danger">
+                    <h5>Alignment Failed</h5>
+                    <p>{{ task.error_message }}</p>
+                </div>
+            {% else %}
+                <div class="alert alert-warning">
+                    <h5>Alignment in Progress</h5>
+                    <p>The alignment task is still processing. Current status: {{ task.status }}</p>
+                    <div class="mt-3">
+                        <button class="btn btn-info" onclick="window.location.reload()">Refresh Status</button>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="card">
+        <div class="card-header bg-info text-white">
+            <h4>JSON Output</h4>
+        </div>
+        <div class="card-body">
+            <div class="mb-2">
+                <button class="btn btn-sm btn-secondary" onclick="copyToClipboard()">
+                    <i class="fas fa-copy"></i> Copy JSON
+                </button>
+            </div>
+            <pre id="jsonOutput" class="p-3 bg-light rounded" style="max-height: 300px; overflow-y: auto;">{{ task.word_timestamps|safe }}</pre>
+        </div>
+    </div>
+</div>
+
+{% block scripts %}
+<script>
+    let audioPlayer;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        audioPlayer = document.getElementById('audioPlayer');
+        
+        // Highlight the current word based on audio playback position
+        if (audioPlayer) {
+            audioPlayer.addEventListener('timeupdate', function() {
+                updateCurrentWord(audioPlayer.currentTime);
+            });
+        }
+    });
+    
+    // Function to seek to a specific time in the audio
+    function seekAudio(time) {
+        if (audioPlayer) {
+            audioPlayer.currentTime = time;
+            audioPlayer.play();
+        }
+    }
+    
+    // Function to update the currently highlighted word
+    function updateCurrentWord(currentTime) {
+        const words = document.querySelectorAll('.word-item');
+        
+        // Remove highlighting from all words
+        words.forEach(word => {
+            word.classList.remove('bg-warning');
+        });
+        
+        // Find and highlight the current word
+        words.forEach(word => {
+            const start = parseFloat(word.getAttribute('data-start'));
+            const end = parseFloat(word.getAttribute('data-end'));
+            
+            if (currentTime >= start && currentTime <= end) {
+                word.classList.add('bg-warning');
+                
+                // Ensure the word is visible by scrolling if needed
+                const container = document.getElementById('transcriptWithTimestamps');
+                if (container) {
+                    const wordPosition = word.offsetLeft;
+                    const containerWidth = container.offsetWidth;
+                    const scrollPosition = container.scrollLeft;
+                    
+                    if (wordPosition < scrollPosition || wordPosition > scrollPosition + containerWidth) {
+                        container.scrollLeft = wordPosition - 50;
+                    }
+                }
+            }
+        });
+    }
+    
+    // Function to copy JSON to clipboard
+    function copyToClipboard() {
+        const jsonOutput = document.getElementById('jsonOutput');
+        
+        // Create a temporary textarea to copy the text
+        const textarea = document.createElement('textarea');
+        textarea.value = jsonOutput.textContent;
+        document.body.appendChild(textarea);
+        textarea.select();
+        document.execCommand('copy');
+        document.body.removeChild(textarea);
+        
+        // Show feedback
+        alert('JSON copied to clipboard');
+    }
+</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    .word-item {
+        cursor: pointer;
+        padding: 2px 4px;
+        margin: 0 2px;
+        border-radius: 3px;
+        display: inline-block;
+    }
+    
+    .word-item:hover {
+        background-color: #e9ecef;
+    }
+    
+    #transcriptWithTimestamps {
+        line-height: 2;
+        white-space: normal;
+        word-wrap: break-word;
+    }
+</style>
+{% endblock %}
+{% endblock %}

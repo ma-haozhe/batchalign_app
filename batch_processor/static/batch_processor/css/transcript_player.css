@@ -52,7 +52,8 @@
     z-index: 1;
 }
 
-.speaker-timeline-container {
+.speaker-timeline-container,
+.speaker-timeline-wrapper {
     position: relative;
     height: 100px;
     padding: 0;
@@ -63,9 +64,31 @@
     overflow: hidden;
 }
 
-#timelineCanvas {
+#timelineCanvas,
+#speakerTimeline canvas {
     width: 100%;
     height: 100%;
+}
+
+/* Speaker timeline and components */
+.speaker-legend {
+    margin-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    font-size: 12px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    margin-right: 10px;
+    margin-bottom: 4px;
+}
+
+#timelinePlayhead {
+    box-shadow: 0 0 4px rgba(220, 53, 69, 0.5);
+    transition: left 0.1s linear;
 }
 
 /* Confidence indicator bar like Pyannote */
@@ -155,11 +178,57 @@
     box-shadow: 0 1px 3px rgba(0, 123, 255, 0.2);
     font-weight: 500;
     transform: translateX(3px);
+    position: relative;
 }
 
 .transcript-line.next-up {
     background-color: #f0f8ff;
     border-left: 3px solid #6c757d;
+}
+
+.content-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: rgba(0, 123, 255, 0.6);
+    transition: width 0.1s linear;
+    z-index: 2;
+}
+
+.word-timing-line {
+    padding: 4px 8px;
+    margin-left: 20px;
+    margin-bottom: 4px;
+    font-size: 0.9em;
+    color: #666;
+    background-color: #f8f9fa;
+    border-left: 3px solid #ccc;
+}
+
+.word-timing-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.timing-label {
+    color: #888;
+    margin-right: 6px;
+    font-size: 0.85em;
+}
+
+.word-with-timing {
+    position: relative;
+    cursor: pointer;
+    border-bottom: 1px dotted #007bff;
+}
+
+.word-with-timing:hover {
+    color: #0056b3;
+    background-color: rgba(0, 123, 255, 0.1);
+    border-radius: 0 2px 2px 0;
+    z-index: 2;
 }
 
 /* Speaker labels */

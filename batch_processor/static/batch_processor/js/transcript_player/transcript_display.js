@@ -17,7 +17,48 @@ window.initializeTranscriptDisplay = function() {
     if (chatContent && chatContent.trim() !== '') {
         console.log("Displaying CHAT format content");
         displayChatContent(chatContent);
-    } else if (diarizationData && diarizationData.trim() !== '') {
+    } else if (diarizationfunction extractChatTimestamps(text) {
+    // Handle both actual Unicode characters and escape sequences
+    // First decode any Unicode escape sequences in the text
+    const decodedText = decodeUnicodeEscapeSequences(text);
+    
+    // Try multiple timestamp formats, from most structured to least structured
+    
+    // Format 1: \u0015NUMBERS_NUMBERS\u0015 (standard CHAT format)
+    // Both backslash representation and actual NAK character (ASCII 21/hex 15)
+    const nakChar = String.fromCharCode(21); // NAK character
+    
+    // Look for both escaped and actual NAK characters
+    const regexPatterns = [
+        // Escaped with underscore (start_end)
+        new RegExp(`\\\\u?0*15(\\d+)_(\\d+)\\\\u?0*15`),
+        new RegExp(`${nakChar}(\\d+)_(\\d+)${nakChar}`),
+        
+        // Single timestamp with NAK
+        new RegExp(`\\\\u?0*15(\\d+)\\\\u?0*15`),
+        new RegExp(`${nakChar}(\\d+)${nakChar}`)
+    ];
+    
+    // Try each pattern
+    for (const regex of regexPatterns) {
+        const match = decodedText.match(regex) || text.match(regex);
+        if (match) {
+            if (match.length >= 3) {
+                // Format with start_end
+                return {
+                    start: parseInt(match[1]),
+                    end: parseInt(match[2])
+                };
+            } else if (match.length >= 2) {
+                // Format with just start time
+                const startTime = parseInt(match[1]);
+                return {
+                    start: startTime,
+                    end: startTime + 5000 // Default 5 seconds duration
+                };
+            }
+        }
+    }ata.trim() !== '') {
         console.log("Displaying diarization data");
         try {
             const segments = JSON.parse(diarizationData);
@@ -110,6 +151,10 @@ function setupTranscriptHighlighting() {
 // Display CHAT format content
 function displayChatContent(content) {
     console.log("Displaying CHAT content");
+    
+    // Handle Unicode escape sequences like \u000A (newline) and \u0015 (NAK)
+    content = decodeUnicodeEscapeSequences(content);
+    
     const lines = content.split('\n');
     console.log(`CHAT content has ${lines.length} lines`);
     
@@ -137,6 +182,7 @@ function displayChatContent(content) {
             headerLinesCount++;
             const headerLine = document.createElement('div');
             headerLine.className = 'header-line';
+            // Apply Unicode decoding to ensure proper display
             headerLine.textContent = line;
             headerContainer.appendChild(headerLine);
         } else if (line.startsWith('*')) {
@@ -150,19 +196,22 @@ function displayChatContent(content) {
             // Extract speaker
             const colonIndex = line.indexOf(':');
             if (colonIndex > 0) {
-                const originalSpeaker = line.substring(1, colonIndex).trim();
+                const originalSpeaker = decodeUnicodeEscapeSequences(line.substring(1, colonIndex).trim());
                 window.uniqueSpeakers.add(originalSpeaker);
                 
                 utteranceLine.dataset.speaker = originalSpeaker;
                 
                 // Extract text and timestamp
                 let text = line.substring(colonIndex + 1).trim();
+                // Ensure any embedded Unicode escape sequences are properly interpreted
+                text = decodeUnicodeEscapeSequences(text);
                 console.log(`Processing line: "${text}"`);
                 
                 // Try multiple timestamp formats, from most common to least common
                 let timestampFound = false;
                 
                 // Format 1: Check for standard format "word word word 12345_67890"
+                // This is the format used in PETIT027_Mother_FreePlay_Audio_16kHz.mp3.cha
                 const words = text.split(' ');
                 const lastWord = words[words.length - 1];
                 
@@ -299,33 +348,108 @@ function displayChatContent(content) {
                     
                     const wordSpan = document.createElement('span');
                     wordSpan.className = 'transcript-word';
+                    // Words are already decoded earlier when the text variable was processed
                     wordSpan.textContent = word + (i < textWords.length - 1 ? ' ' : '');
                     textContent.appendChild(wordSpan);
                 });
+                
+                // Add content progress indicator
+                const progressIndicator = document.createElement('div');
+                progressIndicator.className = 'content-progress';
+                progressIndicator.style.width = '0%';
+                utteranceLine.appendChild(progressIndicator);
                 
                 utteranceLine.appendChild(textContent);
                 transcriptContainer.appendChild(utteranceLine);
                 lastUtteranceLine = utteranceLine;
             }
         } else if (line.startsWith('%wor:')) {
-            // Word-level timing line - just display as comment without parsing
+            // Word-level timing line - parse and display word-level timing
             inHeader = false;
-            const commentLine = document.createElement('div');
-            commentLine.className = 'transcript-line comment-line';
-            commentLine.textContent = line;
-            transcriptContainer.appendChild(commentLine);
+            
+            // Create a container for word-level timing
+            const wordTimingLine = document.createElement('div');
+            wordTimingLine.className = 'transcript-line word-timing-line';
+            
+            // Extract word timing information
+            const worText = decodeUnicodeEscapeSequences(line.substring('%wor:'.length).trim());
+            const worItems = worText.split(' ');
+            
+            // Keep track of the last utterance line to associate this with
+            if (lastUtteranceLine) {
+                wordTimingLine.dataset.parentLine = lastUtteranceLine.dataset.line;
+            }
+            
+            const wordTimingContainer = document.createElement('div');
+            wordTimingContainer.className = 'word-timing-container';
+            
+            // Process each word-timing item
+            worItems.forEach(item => {
+                // Check if this item has timing (in format "word 12345_67890")
+                const parts = item.split('_');
+                if (parts.length === 2 && !isNaN(parseInt(parts[0])) && !isNaN(parseInt(parts[1]))) {
+                    const startTime = parseInt(parts[0]);
+                    const endTime = parseInt(parts[1]);
+                    
+                    // If this is the first word with timing, set the start time for the parent line
+                    if (lastUtteranceLine && (!lastUtteranceLine.dataset.start || parts[0] < lastUtteranceLine.dataset.start)) {
+                        lastUtteranceLine.dataset.start = startTime;
+                    }
+                    
+                    // Create a word span with timing data
+                    const wordSpan = document.createElement('span');
+                    wordSpan.className = 'word-with-timing';
+                    // Decode any Unicode escapes in the word text and remove trailing timestamp part
+                    wordSpan.textContent = decodeUnicodeEscapeSequences(item.replace(/_\d+$/, ''));
+                    wordSpan.dataset.start = startTime;
+                    wordSpan.dataset.end = endTime;
+                    
+                    wordTimingContainer.appendChild(wordSpan);
+                } else {
+                    // Just regular text without timing
+                    const textNode = document.createTextNode(decodeUnicodeEscapeSequences(item) + ' ');
+                    wordTimingContainer.appendChild(textNode);
+                }
+            });
+            
+            // Add a label to indicate this is word timing
+            const label = document.createElement('span');
+            label.className = 'timing-label';
+            label.textContent = 'Word timing: ';
+            wordTimingLine.appendChild(label);
+            
+            // Add the word timing container
+            wordTimingLine.appendChild(wordTimingContainer);
+            
+            // Add word-level click handling for seeking
+            const wordSpans = wordTimingContainer.querySelectorAll('.word-with-timing');
+            wordSpans.forEach(wordSpan => {
+                if (wordSpan.dataset.start) {
+                    wordSpan.addEventListener('click', function() {
+                        console.log(`Seeking to word time: ${wordSpan.dataset.start}ms`);
+                        if (typeof window.seekToTime === 'function') {
+                            window.seekToTime(parseInt(wordSpan.dataset.start));
+                        }
+                    });
+                }
+            });
+            
+            // Add to the transcript
+            transcriptContainer.appendChild(wordTimingLine);
         } else if (line.startsWith('%')) {
             // Other comment line
             inHeader = false;
             const commentLine = document.createElement('div');
             commentLine.className = 'transcript-line comment-line';
-            commentLine.textContent = line;
+            // Ensure any embedded Unicode escape sequences are properly interpreted
+            commentLine.textContent = decodeUnicodeEscapeSequences(line);
             transcriptContainer.appendChild(commentLine);
         } else if (!inHeader) {
             // Other content after header
             const contentLine = document.createElement('div');
             contentLine.className = 'transcript-line';
-            contentLine.textContent = line;
+            // Ensure any embedded Unicode escape sequences are properly interpreted
+            contentLine.textContent = decodeUnicodeEscapeSequences(line);
             transcriptContainer.appendChild(contentLine);
         }
     });
@@ -476,16 +600,39 @@ function updateTranscriptHighlight(currentTimeMs) {
             }
         });
         
-        // If we found an active element, scroll to it if auto-scroll is enabled
+        // If we found an active element, update its progress indicator and scroll to it if auto-scroll is enabled
         if (activeElement) {
-        if (window.autoScroll) {
+            // Update the progress indicator
+            const progressElem = activeElement.querySelector('.content-progress');
+            if (progressElem) {
+                // Calculate percentage progress through this segment
+                const start = parseInt(activeElement.dataset.start);
+                const end = activeElement.dataset.end ? parseInt(activeElement.dataset.end) : start + 10000;
+                const duration = end - start;
+                const elapsed = currentTimeMs - start;
+                const percentage = Math.min(100, Math.max(0, (elapsed / duration) * 100));
+                
+                // Apply the width as a percentage
+                progressElem.style.width = `${percentage}%`;
+                
+                console.log(`Progress indicator: ${percentage.toFixed(1)}% (${elapsed}ms / ${duration}ms)`);
+            }
+            
+            if (window.autoScroll) {
                 scrollToElement(activeElement);
             }
         }
         // Otherwise, fallback to closest past line
         else if (closestPastLine) {
             closestPastLine.classList.add('active');
-        if (window.autoScroll) {
+            
+            // Clear the progress indicator for past lines
+            const progressElem = closestPastLine.querySelector('.content-progress');
+            if (progressElem) {
+                progressElem.style.width = '100%';
+            }
+            
+            if (window.autoScroll) {
                 scrollToElement(closestPastLine);
             }
         }
@@ -493,6 +640,12 @@ function updateTranscriptHighlight(currentTimeMs) {
         // If we have a "next up" line coming within 5 seconds, highlight it
         if (nextUpLine && nextUpDistance < 5000) {
             nextUpLine.classList.add('next-up');
+            
+            // Clear progress indicator for upcoming lines
+            const progressElem = nextUpLine.querySelector('.content-progress');
+            if (progressElem) {
+                progressElem.style.width = '0%';
+            }
         }
 }
 
@@ -505,6 +658,11 @@ function scrollToElement(element) {
         return;
     }
     
+    // Bail early if we're currently scrolling manually
+    if (window.isManualScrolling) {
+        return;
+    }
+    
     const container = document.getElementById('transcriptContainer');
     if (!container) {
         console.error("Transcript container not found for auto-scrolling");
@@ -512,6 +670,20 @@ function scrollToElement(element) {
     }
     
     try {
+        // Check if the element is already visible in the viewport
+        const containerRect = container.getBoundingClientRect();
+        const elementRect = element.getBoundingClientRect();
+        
+        // If the element is already fully visible, don't scroll
+        const isFullyVisible = 
+            elementRect.top >= containerRect.top && 
+            elementRect.bottom <= containerRect.bottom;
+        
+        if (isFullyVisible) {
+            console.log("Element already visible, not scrolling");
+            return;
+        }
+        
         // Get the position of the element relative to the container
         const elementTop = element.offsetTop;
         const containerHeight = container.clientHeight;
@@ -520,11 +692,19 @@ function scrollToElement(element) {
         // Calculate scroll position to center the element
         const scrollPosition = elementTop - (containerHeight / 2) + (elementHeight / 2);
         
+        // Mark that we're performing a programmatic scroll
+        window.isProgrammaticScroll = true;
+        
         // Smoothly scroll to the position
         container.scrollTo({
             top: scrollPosition,
             behavior: 'smooth'
         });
+        
+        // After the scroll animation completes, reset the flag
+        setTimeout(() => {
+            window.isProgrammaticScroll = false;
+        }, 300);
         
         // Add a subtle visual highlight pulse
         element.style.transition = 'background-color 0.3s ease';
@@ -624,10 +804,67 @@ function initializeTimestampsPostLoad() {
     return timestampsFound;
 }
 
-// Call the initialization function after the transcript is loaded
+// Add scroll event handling to detect manual scrolling
+function setupScrollHandling() {
+    const container = document.getElementById('transcriptContainer');
+    if (!container) return;
+    
+    // Add flags for tracking scroll state
+    window.isManualScrolling = false;
+    window.isProgrammaticScroll = false;
+    let scrollTimeout;
+    
+    container.addEventListener('scroll', function() {
+        // Skip if this is a programmatic scroll
+        if (window.isProgrammaticScroll) return;
+        
+        // User is manually scrolling, set the manual scroll flag
+        window.isManualScrolling = true;
+        
+        // Clear any existing timeout
+        if (scrollTimeout) {
+            clearTimeout(scrollTimeout);
+        }
+        
+        // After 2 seconds of no scrolling, re-enable auto-scroll if it's turned on
+        scrollTimeout = setTimeout(function() {
+            window.isManualScrolling = false;
+            console.log("Manual scroll ended, auto-scroll will resume if enabled");
+        }, 2000);
+    });
+    
+    console.log("Scroll handling initialized");
+}
+
+// Call the initialization functions after the transcript is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for transcript to load
     setTimeout(function() {
         initializeTimestampsPostLoad();
+        setupScrollHandling();
     }, 2000); // 2 second delay to ensure transcript is loaded
-}); 
+});
+
+// Helper function to decode Unicode escape sequences like \u000A (newline) and \u0015 (NAK)
+function decodeUnicodeEscapeSequences(text) {
+    if (!text) return text;
+    
+    // Handle both standard format \uXXXX and other forms like \u000A or \0015
+    return text
+        // Handle standard JavaScript Unicode escapes \uXXXX
+        .replace(/\\u([0-9a-fA-F]{4})/g, (match, hex) => {
+            return String.fromCharCode(parseInt(hex, 16));
+        })
+        // Handle other backslash formats like \0015XXXX\0015 (CHAT format specific notation)
+        .replace(/\\0*15(\d+)(?:_\d+)?\\0*15/g, (match, num) => {
+            return num; // For timing info, just keep the number part
+        })
+        // Handle \1234 style escape sequences (octal notation)
+        .replace(/\\([0-7]{3})/g, (match, oct) => {
+            return String.fromCharCode(parseInt(oct, 8));
+        })
+        // Handle numeric escape codes like \15 or \015
+        .replace(/\\0*([0-9]{1,3})/g, (match, num) => {
+            return String.fromCharCode(parseInt(num, 10));
+        });
+}

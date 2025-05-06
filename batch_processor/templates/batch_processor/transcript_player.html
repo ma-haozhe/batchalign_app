@@ -219,9 +219,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                     <a class="nav-link" id="raw-tab" data-bs-toggle="tab" href="#raw">Raw Content</a>
                                 </li>
                                 <li class="nav-item ms-auto">
-                                    <div class="form-check form-switch mt-1">
+                                    <div class="form-check form-switch mt-1 d-flex align-items-center" 
+                                         data-bs-toggle="tooltip" data-bs-placement="bottom" 
+                                         title="When enabled, transcript will automatically scroll to follow the current playback position">
                                         <input class="form-check-input" type="checkbox" id="autoScrollToggle" checked>
-                                        <label class="form-check-label small" for="autoScrollToggle">Auto-scroll</label>
+                                        <label class="form-check-label small ms-1" for="autoScrollToggle">
+                                            <i class="bi bi-arrow-down-circle me-1"></i>Follow playback
+                                        </label>
                                     </div>
                                 </li>
                             </ul>
@@ -340,9 +344,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
 {% block extra_js %}
 <!-- Load modular JavaScript files -->
+<script src="{% static 'batch_processor/js/transcript_player/unicode_decoder.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/display_fix_helper.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/transcript_enhancer.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/autoscroll_fix.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/speaker_mapping.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/speaker_timeline.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/missing_segments.js' %}"></script>
 
 <!-- Common functionality and initialization -->
@@ -487,7 +496,11 @@ document.getElementById('runTestsBtn')?.addEventListener('click', function() {
 document.addEventListener('DOMContentLoaded', function() {
     console.log("DOM fully loaded - initializing transcript player");
     
-    // Setup auto-scroll toggle
+    // Initialize Bootstrap tooltips
+    const tooltipTriggerList = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+    const tooltipList = [...tooltipTriggerList].map(tooltipTriggerEl => new bootstrap.Tooltip(tooltipTriggerEl));
+    
+    // Setup auto-scroll toggle with enhanced feedback
     const autoScrollToggle = document.getElementById('autoScrollToggle');
     if (autoScrollToggle) {
         window.autoScroll = autoScrollToggle.checked;
@@ -495,6 +508,24 @@ document.addEventListener('DOMContentLoaded', function() {
         autoScrollToggle.addEventListener('change', function() {
             window.autoScroll = this.checked;
             console.log("Auto-scroll set to:", window.autoScroll);
+            
+            // Add visual feedback for the toggle state
+            const label = autoScrollToggle.nextElementSibling;
+            if (label) {
+                if (this.checked) {
+                    label.innerHTML = '<i class="bi bi-arrow-down-circle-fill me-1"></i>Following playback';
+                } else {
+                    label.innerHTML = '<i class="bi bi-arrow-down-circle me-1"></i>Follow playback';
+                }
+            }
+            
+            // If turning on auto-scroll, immediately scroll to current position
+            if (this.checked) {
+                const activeElement = document.querySelector('.transcript-line.active');
+                if (activeElement) {
+                    scrollToElement(activeElement);
+                }
+            }
         });
     }
     

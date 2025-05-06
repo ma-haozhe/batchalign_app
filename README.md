@@ -100,7 +100,7 @@ To get the application running quickly:
    ```bash
    python manage.py runserver
    ```
-   This will start the application usually on http://127.0.0.1:8000/
+   This will start the application usuallyon http://127.0.0.1:8000/
 
 ### Project Structure Explained
 The project follows Django's standard structure:

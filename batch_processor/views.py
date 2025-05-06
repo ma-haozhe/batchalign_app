@@ -1059,3 +1059,51 @@ def update_missing_segment(request, transcript_id):
     except Exception as e:
         logger.exception(f"Error updating missing segment: {e}")
         return JsonResponse({'success': False, 'message': str(e)})
+
+def delete_file(request, file_id):
+    """Delete an audio file and its transcript"""
+    if request.method == "POST":
+        try:
+            audio_file = AudioFile.objects.get(id=file_id)
+            
+            # Delete the physical file if it exists
+            if audio_file.audio_file:
+                try:
+                    if os.path.exists(audio_file.audio_file.path):
+                        os.remove(audio_file.audio_file.path)
+                except Exception as e:
+                    logger.warning(f"Failed to delete physical file: {e}")
+            
+            # Get associated transcript for logging
+            transcript_id = None
+            try:
+                if hasattr(audio_file, 'transcript'):
+                    transcript_id = audio_file.transcript.id
+            except:
+                pass
+                
+            # Delete the database record - this will cascade delete the transcript
+            audio_file.delete()
+            
+            logger.info(f"Successfully deleted audio file ID {file_id} with transcript ID {transcript_id}")
+            
+            return JsonResponse({
+                "status": "success",
+                "message": "File deleted successfully"
+            })
+        except AudioFile.DoesNotExist:
+            return JsonResponse({
+                "status": "error",
+                "message": "File not found"
+            })
+        except Exception as e:
+            logger.exception(f"Error deleting file {file_id}: {str(e)}")
+            return JsonResponse({
+                "status": "error",
+                "message": f"Error deleting file: {str(e)}"
+            })
+    
+    return JsonResponse({
+        "status": "error",
+        "message": "Invalid request method"
+    })

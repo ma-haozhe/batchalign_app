@@ -1,5 +1,36 @@
+# Audio files
 *.mp3
 *.wav
+*.WAV
 input/
+
+# Python
 __pycache__/
+*.py[cod]
+*$py.class
+
+# Django
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Generated files
+staticfiles/
+*.cha
+
+# Environment
+.env
+venv/
+ENV/
+
+# OS specific files
 .DS_Store
+.AppleDouble
+.LSOverride
+
+# Media uploads
+media/uploads/
+
+# Exclude batchalign2 source
+batchalign2/

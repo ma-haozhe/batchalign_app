@@ -23,4 +23,5 @@ from django.views.decorators.csrf import csrf_exempt
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('batch_processor.urls')),
+    path('forced-alignment/', include('forced_alignment.urls', namespace='forced_alignment')),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

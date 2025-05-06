@@ -1,6 +1,7 @@
 {% extends "batch_processor/base.html" %}
 
 {% block content %}
+{% csrf_token %}
 <div class="container mt-4">
     <h1>Processed Audio Files</h1>
     
@@ -89,8 +90,7 @@ async function deleteFile(fileId) {
         const response = await fetch(`/delete/${fileId}/`, {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'Content-Type': 'application/json'
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
         });
         const data = await response.json();
@@ -115,8 +115,7 @@ async function clearAllFiles() {
         const response = await fetch('/clear-cache/', {
             method: 'POST',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
-                'Content-Type': 'application/json'
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
             }
         });
         const data = await response.json();

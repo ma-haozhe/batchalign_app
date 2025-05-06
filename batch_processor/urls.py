@@ -13,6 +13,7 @@ urlpatterns = [
     path('transcript/<int:transcript_id>/update-missing-segment/', views.update_missing_segment, name='update_missing_segment'),
     path('settings/', views.settings_view, name='settings'),
     path('download/<int:file_id>/', views.download_chat, name='download_file'),
+    path('delete/<int:file_id>/', views.delete_file, name='delete_file'),
     # Add API key setting endpoints
     path('set-hf-token/', views.set_hf_token, name='set_hf_token'),
     path('set-rev-api-key/', views.set_rev_api_key, name='set_rev_api_key'),

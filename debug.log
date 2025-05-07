@@ -4669,3 +4669,593 @@ INFO 2025-05-06 19:38:28,649 basehttp 28080 13305409536 "GET /forced-alignment/a
 INFO 2025-05-06 19:44:06,109 autoreload 31238 8535018624 Watching for file changes with StatReloader
 INFO 2025-05-06 19:44:35,838 basehttp 31238 14071869440 "GET /transcripts/ HTTP/1.1" 200 17149
 INFO 2025-05-06 19:44:56,308 basehttp 31238 14071869440 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-06 21:34:23,825 autoreload 83873 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-06 21:34:48,920 basehttp 83873 13312749568 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-06 21:34:49,919 basehttp 83873 13312749568 "GET /forced-alignment/ HTTP/1.1" 200 12340
+INFO 2025-05-06 21:34:50,830 basehttp 83873 13312749568 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-06 21:34:51,450 basehttp 83873 13312749568 "GET /forced-alignment/ HTTP/1.1" 200 12340
+INFO 2025-05-06 21:34:54,094 basehttp 83873 13312749568 "GET /forced-alignment/api/status/2/ HTTP/1.1" 200 413
+INFO 2025-05-06 22:55:23,317 autoreload 23901 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-06 22:55:36,300 basehttp 23901 13535047680 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-06 22:55:39,332 basehttp 23901 13535047680 "GET /forced-alignment/ HTTP/1.1" 200 12340
+INFO 2025-05-06 22:56:01,879 autoreload 24339 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-06 22:56:20,254 basehttp 24339 13553922048 "GET / HTTP/1.1" 200 3589
+ERROR 2025-05-06 22:56:22,293 log 24339 13553922048 Internal Server Error: /forced-alignment/
+Traceback (most recent call last):
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 354, in execute
+    return super().execute(query, params)
+sqlite3.OperationalError: no such column: forced_alignment_forcedalignmenttask.audio_file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/haozhema/batchalign_app/forced_alignment/views.py", line 33, in index
+    return render(request, 'forced_alignment/index.html', context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/defaulttags.py", line 199, in render
+    len_values = len(values)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 354, in execute
+    return super().execute(query, params)
+django.db.utils.OperationalError: no such column: forced_alignment_forcedalignmenttask.audio_file
+ERROR 2025-05-06 22:56:22,296 basehttp 24339 13553922048 "GET /forced-alignment/ HTTP/1.1" 500 219596
+INFO 2025-05-06 23:08:31,334 autoreload 30785 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-06 23:08:41,338 basehttp 30785 13497298944 "GET / HTTP/1.1" 200 3589
+ERROR 2025-05-06 23:08:42,799 log 30785 13497298944 Internal Server Error: /forced-alignment/
+Traceback (most recent call last):
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 354, in execute
+    return super().execute(query, params)
+sqlite3.OperationalError: no such column: forced_alignment_forcedalignmenttask.audio_file
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/core/handlers/exception.py", line 55, in inner
+    response = get_response(request)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/core/handlers/base.py", line 197, in _get_response
+    response = wrapped_callback(request, *callback_args, **callback_kwargs)
+  File "/Users/haozhema/batchalign_app/forced_alignment/views.py", line 33, in index
+    return render(request, 'forced_alignment/index.html', context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/shortcuts.py", line 25, in render
+    content = loader.render_to_string(template_name, context, request, using=using)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader.py", line 62, in render_to_string
+    return template.render(context, request)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/backends/django.py", line 107, in render
+    return self.template.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 171, in render
+    return self._render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader_tags.py", line 159, in render
+    return compiled_parent._render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 163, in _render
+    return self.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/loader_tags.py", line 65, in render
+    result = block.nodelist.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in render
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 1008, in <listcomp>
+    return SafeString("".join([node.render_annotated(context) for node in self]))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/base.py", line 969, in render_annotated
+    return self.render(context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/template/defaulttags.py", line 199, in render
+    len_values = len(values)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 382, in __len__
+    self._fetch_all()
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 1928, in _fetch_all
+    self._result_cache = list(self._iterable_class(self))
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/query.py", line 91, in __iter__
+    results = compiler.execute_sql(
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/models/sql/compiler.py", line 1574, in execute_sql
+    cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 122, in execute
+    return super().execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 79, in execute
+    return self._execute_with_wrappers(
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 92, in _execute_with_wrappers
+    return executor(sql, params, many, context)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 100, in _execute
+    with self.db.wrap_database_errors:
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/utils.py", line 91, in __exit__
+    raise dj_exc_value.with_traceback(traceback) from exc_value
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/utils.py", line 105, in _execute
+    return self.cursor.execute(sql, params)
+  File "/Users/haozhema/miniconda3/lib/python3.10/site-packages/django/db/backends/sqlite3/base.py", line 354, in execute
+    return super().execute(query, params)
+django.db.utils.OperationalError: no such column: forced_alignment_forcedalignmenttask.audio_file
+ERROR 2025-05-06 23:08:42,803 basehttp 30785 13497298944 "GET /forced-alignment/ HTTP/1.1" 500 219596
+INFO 2025-05-06 23:23:08,205 autoreload 41729 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-06 23:23:18,672 basehttp 41729 13317992448 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-06 23:23:21,103 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 16420
+INFO 2025-05-07 08:30:49,478 basehttp 41729 13337964544 "GET /settings/ HTTP/1.1" 200 11335
+INFO 2025-05-07 08:30:49,700 basehttp 41729 13337964544 "GET /get-api-keys/ HTTP/1.1" 200 127
+INFO 2025-05-07 08:30:50,290 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 16420
+INFO 2025-05-07 08:30:50,885 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 08:30:51,615 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 16420
+INFO 2025-05-07 08:30:52,146 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 08:30:53,917 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 16420
+INFO 2025-05-07 08:32:35,007 basehttp 41729 13337964544 "POST /forced-alignment/api/start/ HTTP/1.1" 302 0
+INFO 2025-05-07 08:32:35,206 basehttp 41729 13337964544 "GET /forced-alignment/task/3/ HTTP/1.1" 200 7452
+INFO 2025-05-07 08:32:44,459 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 08:32:46,605 basehttp 41729 13337964544 "GET /forced-alignment/api/status/3/ HTTP/1.1" 200 413
+INFO 2025-05-07 08:33:14,880 basehttp 41729 13337964544 "GET /settings/ HTTP/1.1" 200 11335
+INFO 2025-05-07 08:33:15,109 basehttp 41729 13337964544 "GET /get-api-keys/ HTTP/1.1" 200 127
+INFO 2025-05-07 08:33:15,642 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 08:33:18,187 basehttp 41729 13337964544 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 08:33:19,743 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 08:33:21,263 views 41729 13337964544 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 08:33:21,272 views 41729 13337964544 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 08:33:21,320 views 41729 13337964544 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 08:33:21,323 views 41729 13337964544 Transcript 13 content length: 9642
+DEBUG 2025-05-07 08:33:21,323 views 41729 13337964544 Found 0 missing segments
+DEBUG 2025-05-07 08:33:21,324 views 41729 13337964544 Diarization processed: False
+DEBUG 2025-05-07 08:33:21,324 views 41729 13337964544 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 08:33:21,324 views 41729 13337964544 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 08:33:22,817 basehttp 41729 13337964544 "GET /transcript/13/ HTTP/1.1" 200 53402
+INFO 2025-05-07 08:33:22,982 basehttp 41729 13337964544 "GET /static/batch_processor/js/transcript_player/unicode_decoder.js HTTP/1.1" 304 0
+INFO 2025-05-07 08:33:22,983 basehttp 41729 19797192704 "GET /static/batch_processor/js/transcript_player/display_fix_helper.js HTTP/1.1" 304 0
+INFO 2025-05-07 08:33:22,983 basehttp 41729 19780366336 "GET /static/batch_processor/js/transcript_player/transcript_enhancer.js HTTP/1.1" 304 0
+INFO 2025-05-07 08:33:22,985 basehttp 41729 19814019072 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 304 0
+INFO 2025-05-07 08:33:22,986 basehttp 41729 19830845440 "GET /static/batch_processor/js/transcript_player/speaker_timeline.js HTTP/1.1" 304 0
+INFO 2025-05-07 08:33:23,050 basehttp 41729 19830845440 "GET /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3 HTTP/1.1" 200 2008809
+DEBUG 2025-05-07 09:22:46,705 views 41729 13337964544 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:22:46,709 views 41729 13337964544 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 Found 0 missing segments
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 Diarization processed: False
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:22:46,711 views 41729 13337964544 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:22:46,735 basehttp 41729 13337964544 "GET /transcript/13/ HTTP/1.1" 200 53402
+INFO 2025-05-07 09:22:47,051 basehttp 41729 13337964544 "GET /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3 HTTP/1.1" 200 2008809
+INFO 2025-05-07 09:22:48,552 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 09:22:49,103 basehttp 41729 13337964544 "GET /settings/ HTTP/1.1" 200 11335
+INFO 2025-05-07 09:22:49,160 basehttp 41729 13337964544 "GET /get-api-keys/ HTTP/1.1" 200 127
+INFO 2025-05-07 09:22:51,722 basehttp 41729 13337964544 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 09:22:57,029 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 09:22:57,632 basehttp 41729 13337964544 "GET /settings/ HTTP/1.1" 200 11335
+INFO 2025-05-07 09:22:57,682 basehttp 41729 13337964544 "GET /get-api-keys/ HTTP/1.1" 200 127
+INFO 2025-05-07 09:22:58,974 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 09:22:59,443 basehttp 41729 13337964544 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 09:23:01,090 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 09:23:03,559 basehttp 41729 13337964544 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 09:23:04,434 basehttp 41729 13337964544 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 09:23:08,375 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 09:29:03,808 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 09:29:04,182 basehttp 41729 13337964544 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 09:29:07,000 views 41729 13337964544 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Found 0 missing segments
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Diarization processed: False
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:29:07,001 views 41729 13337964544 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:29:07,004 basehttp 41729 13337964544 "GET /transcript/13/ HTTP/1.1" 200 53402
+WARNING 2025-05-07 09:29:14,428 log 41729 13337964544 Not Found: /favicon.ico
+WARNING 2025-05-07 09:29:14,433 basehttp 41729 13337964544 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 09:42:27,828 autoreload 34540 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-07 09:42:39,281 basehttp 34540 13578039296 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 09:42:41,089 basehttp 34540 13595914240 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 09:42:41,544 basehttp 34540 13595914240 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 09:42:42,601 views 34540 13595914240 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Found 0 missing segments
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Diarization processed: False
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:42:42,602 views 34540 13595914240 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:42:42,606 basehttp 34540 13595914240 "GET /transcript/13/ HTTP/1.1" 200 53493
+INFO 2025-05-07 09:42:42,669 basehttp 34540 13595914240 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 200 3533
+WARNING 2025-05-07 09:43:02,816 log 34540 13595914240 Not Found: /favicon.ico
+WARNING 2025-05-07 09:43:02,817 basehttp 34540 13595914240 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 09:53:34,747 autoreload 41027 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-07 09:53:51,180 basehttp 41027 13532950528 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 09:53:52,857 basehttp 41027 13550825472 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 09:53:54,057 views 41027 13550825472 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:53:54,058 views 41027 13550825472 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:53:54,058 views 41027 13550825472 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:53:54,059 views 41027 13550825472 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:53:54,059 views 41027 13550825472 Found 0 missing segments
+DEBUG 2025-05-07 09:53:54,059 views 41027 13550825472 Diarization processed: False
+DEBUG 2025-05-07 09:53:54,059 views 41027 13550825472 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:53:54,059 views 41027 13550825472 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:53:54,076 basehttp 41027 13550825472 "GET /transcript/13/ HTTP/1.1" 200 53493
+INFO 2025-05-07 09:53:54,137 basehttp 41027 13550825472 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 200 4460
+WARNING 2025-05-07 09:53:56,374 log 41027 13550825472 Not Found: /favicon.ico
+WARNING 2025-05-07 09:53:56,375 basehttp 41027 13550825472 "GET /favicon.ico HTTP/1.1" 404 7049
+DEBUG 2025-05-07 09:57:30,857 views 41027 13550825472 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:57:30,859 views 41027 13550825472 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:57:30,859 views 41027 13550825472 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:57:30,859 views 41027 13550825472 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:57:30,859 views 41027 13550825472 Found 0 missing segments
+DEBUG 2025-05-07 09:57:30,860 views 41027 13550825472 Diarization processed: False
+DEBUG 2025-05-07 09:57:30,860 views 41027 13550825472 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:57:30,860 views 41027 13550825472 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:57:30,865 basehttp 41027 13550825472 "GET /transcript/13/ HTTP/1.1" 200 53493
+INFO 2025-05-07 09:57:31,072 basehttp 41027 13550825472 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+WARNING 2025-05-07 09:57:32,837 log 41027 13550825472 Not Found: /favicon.ico
+WARNING 2025-05-07 09:57:32,838 basehttp 41027 13550825472 "GET /favicon.ico HTTP/1.1" 404 7049
+DEBUG 2025-05-07 09:57:43,683 views 41027 13567651840 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 09:57:43,685 views 41027 13567651840 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 09:57:43,693 views 41027 13567651840 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 09:57:43,694 views 41027 13567651840 Transcript 13 content length: 9642
+DEBUG 2025-05-07 09:57:43,694 views 41027 13567651840 Found 0 missing segments
+DEBUG 2025-05-07 09:57:43,694 views 41027 13567651840 Diarization processed: False
+DEBUG 2025-05-07 09:57:43,694 views 41027 13567651840 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 09:57:43,694 views 41027 13567651840 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 09:57:43,705 basehttp 41027 13567651840 "GET /transcript/13/ HTTP/1.1" 200 53493
+INFO 2025-05-07 09:57:44,937 basehttp 41027 13567651840 "GET /static/batch_processor/js/transcript_player/unicode_decoder.js HTTP/1.1" 200 1281
+INFO 2025-05-07 09:57:45,026 basehttp 41027 13618130944 "GET /static/batch_processor/js/transcript_player/transcript_enhancer.js HTTP/1.1" 200 3120
+INFO 2025-05-07 09:57:45,060 basehttp 41027 13584478208 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 200 4460
+INFO 2025-05-07 09:57:45,072 basehttp 41027 13584478208 "GET /static/batch_processor/js/transcript_player/speaker_mapping.js HTTP/1.1" 304 0
+INFO 2025-05-07 09:57:45,073 basehttp 41027 13634957312 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 200 6954
+INFO 2025-05-07 09:57:45,077 basehttp 41027 13618130944 "GET /static/batch_processor/js/transcript_player/missing_segments.js HTTP/1.1" 304 0
+INFO 2025-05-07 09:57:45,090 basehttp 41027 13601304576 "GET /static/batch_processor/js/transcript_player/display_fix_helper.js HTTP/1.1" 200 983
+INFO 2025-05-07 09:57:45,158 basehttp 41027 13567651840 "GET /static/batch_processor/js/transcript_player/audio_player.js HTTP/1.1" 200 25077
+INFO 2025-05-07 09:57:45,161 basehttp 41027 13651783680 "GET /static/batch_processor/js/transcript_player/speaker_timeline.js HTTP/1.1" 200 14802
+INFO 2025-05-07 09:57:45,161 basehttp 41027 13584478208 "GET /static/batch_processor/js/transcript_player/transcript_display.js HTTP/1.1" 200 42020
+INFO 2025-05-07 09:57:45,217 basehttp 41027 13634957312 "GET /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3 HTTP/1.1" 200 2008809
+WARNING 2025-05-07 09:57:46,566 log 41027 13668610048 Not Found: /apple-touch-icon-precomposed.png
+WARNING 2025-05-07 09:57:46,568 basehttp 41027 13668610048 "GET /apple-touch-icon-precomposed.png HTTP/1.1" 404 7112
+WARNING 2025-05-07 09:57:46,573 log 41027 13618130944 Not Found: /favicon.ico
+WARNING 2025-05-07 09:57:46,574 basehttp 41027 13618130944 "GET /favicon.ico HTTP/1.1" 404 7049
+WARNING 2025-05-07 09:57:46,997 log 41027 13668610048 Not Found: /apple-touch-icon.png
+WARNING 2025-05-07 09:57:46,998 basehttp 41027 13668610048 "GET /apple-touch-icon.png HTTP/1.1" 404 7076
+WARNING 2025-05-07 09:57:48,162 log 41027 13601304576 Not Found: /favicon.ico
+WARNING 2025-05-07 09:57:48,163 basehttp 41027 13601304576 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:05:56,889 autoreload 47227 8535018624 Watching for file changes with StatReloader
+INFO 2025-05-07 10:06:28,143 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:06:30,358 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:06:34,112 views 47227 13241446400 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 10:06:34,113 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 10:06:34,113 views 47227 13241446400 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 10:06:34,114 views 47227 13241446400 Transcript 13 content length: 9642
+DEBUG 2025-05-07 10:06:34,114 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:06:34,114 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:06:34,114 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:06:34,114 views 47227 13241446400 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 10:06:34,128 basehttp 47227 13241446400 "GET /transcript/13/ HTTP/1.1" 200 53581
+INFO 2025-05-07 10:06:34,234 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 200 5049
+INFO 2025-05-07 10:06:34,234 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 200 5736
+WARNING 2025-05-07 10:06:35,743 log 47227 13241446400 Not Found: /favicon.ico
+WARNING 2025-05-07 10:06:35,744 basehttp 47227 13241446400 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:09:55,971 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:09:57,752 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:09:57,753 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:09:57,753 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:09:57,754 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:09:57,754 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:09:57,754 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:09:57,754 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:09:57,754 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:09:57,757 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 10:09:57,851 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:09:57,851 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+WARNING 2025-05-07 10:09:59,489 log 47227 13262467072 Not Found: /favicon.ico
+WARNING 2025-05-07 10:09:59,490 basehttp 47227 13262467072 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:10:25,998 basehttp 47227 13279293440 - Broken pipe from ('127.0.0.1', 52358)
+INFO 2025-05-07 10:10:27,874 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 52474)
+INFO 2025-05-07 10:10:34,877 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 52483)
+DEBUG 2025-05-07 10:10:44,552 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:10:44,553 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:10:44,553 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:10:44,554 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:10:44,554 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:10:44,554 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:10:44,554 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:10:44,554 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:10:44,558 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 10:10:44,785 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 200 5049
+INFO 2025-05-07 10:10:44,791 basehttp 47227 14071869440 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:10:44,792 basehttp 47227 13279293440 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 200 5736
+INFO 2025-05-07 10:10:44,794 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/transcript_display.js HTTP/1.1" 200 43347
+INFO 2025-05-07 10:10:45,162 basehttp 47227 13241446400 "GET /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV HTTP/1.1" 200 61561344
+WARNING 2025-05-07 10:10:46,768 log 47227 14071869440 Not Found: /favicon.ico
+WARNING 2025-05-07 10:10:46,769 basehttp 47227 14071869440 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:11:54,468 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:11:56,058 views 47227 13241446400 Audio URL for transcript 13: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+DEBUG 2025-05-07 10:11:56,059 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3, exists: True, size: 2008809
+DEBUG 2025-05-07 10:11:56,059 views 47227 13241446400 Audio file MIME type: audio/mpeg
+DEBUG 2025-05-07 10:11:56,060 views 47227 13241446400 Transcript 13 content length: 9642
+DEBUG 2025-05-07 10:11:56,060 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:11:56,060 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:11:56,060 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:11:56,060 views 47227 13241446400 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3
+INFO 2025-05-07 10:11:56,064 basehttp 47227 13241446400 "GET /transcript/13/ HTTP/1.1" 200 53581
+INFO 2025-05-07 10:11:56,157 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:11:56,159 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/transcript_display.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:11:56,160 basehttp 47227 13279293440 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:11:56,182 basehttp 47227 13241446400 "GET /media/uploads/PETIT027_Mother_FreePlay_Audio_16kHz_yXejIBa_dJr3PJp.mp3 HTTP/1.1" 200 2008809
+WARNING 2025-05-07 10:11:57,580 log 47227 13262467072 Not Found: /favicon.ico
+WARNING 2025-05-07 10:11:57,580 basehttp 47227 13262467072 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:13:58,281 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:13:59,898 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:13:59,899 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:13:59,903 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 10:13:59,967 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:13:59,968 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/transcript_display.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:13:59,969 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:13:59,970 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:14:00,095 basehttp 47227 13241446400 "GET /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV HTTP/1.1" 200 61561344
+WARNING 2025-05-07 10:14:01,755 log 47227 13262467072 Not Found: /favicon.ico
+WARNING 2025-05-07 10:14:01,756 basehttp 47227 13262467072 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:16:35,707 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:16:38,131 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:16:41,706 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:16:41,707 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:16:41,707 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:16:41,707 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:16:41,708 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:16:41,708 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:16:41,708 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:16:41,708 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:16:41,711 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 10:16:41,759 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:16:41,760 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+WARNING 2025-05-07 10:16:43,442 log 47227 13241446400 Not Found: /favicon.ico
+WARNING 2025-05-07 10:16:43,443 basehttp 47227 13241446400 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:16:50,436 basehttp 47227 13262467072 - Broken pipe from ('127.0.0.1', 52780)
+INFO 2025-05-07 10:21:07,490 basehttp 47227 13262467072 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 10:21:07,512 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 52765)
+INFO 2025-05-07 10:30:11,869 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:30:13,857 views 47227 13241446400 Audio URL for transcript 10: /media/uploads/PETIT027_Mother_FreePlay_Audio_UuUMbBt.WAV
+DEBUG 2025-05-07 10:30:13,858 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT027_Mother_FreePlay_Audio_UuUMbBt.WAV, exists: True, size: 59077120
+DEBUG 2025-05-07 10:30:13,858 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:30:13,860 views 47227 13241446400 Transcript 10 content length: 9365
+DEBUG 2025-05-07 10:30:13,860 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:30:13,860 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:30:13,860 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:30:13,860 views 47227 13241446400 Audio URL: /media/uploads/PETIT027_Mother_FreePlay_Audio_UuUMbBt.WAV
+INFO 2025-05-07 10:30:13,863 basehttp 47227 13241446400 "GET /transcript/10/ HTTP/1.1" 200 52500
+INFO 2025-05-07 10:30:13,979 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/unicode_decoder.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:30:13,985 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:30:13,990 basehttp 47227 13279293440 "GET /static/batch_processor/js/transcript_player/display_fix_helper.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:30:13,995 basehttp 47227 14105522176 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:30:13,997 basehttp 47227 14071869440 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 200 6954
+INFO 2025-05-07 10:30:13,996 basehttp 47227 14088695808 "GET /static/batch_processor/js/transcript_player/transcript_enhancer.js HTTP/1.1" 304 0
+WARNING 2025-05-07 10:30:15,196 log 47227 14071869440 Not Found: /favicon.ico
+WARNING 2025-05-07 10:30:15,197 basehttp 47227 14071869440 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:30:24,960 basehttp 47227 13262467072 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 10:30:24,977 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 53183)
+DEBUG 2025-05-07 10:30:28,273 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:30:28,274 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:30:28,277 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+WARNING 2025-05-07 10:30:29,559 log 47227 13262467072 Not Found: /favicon.ico
+WARNING 2025-05-07 10:30:29,560 basehttp 47227 13262467072 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:31:35,522 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 53197)
+DEBUG 2025-05-07 10:31:42,903 views 47227 13262467072 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Transcript 11 content length: 8822
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Found 0 missing segments
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Diarization processed: False
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 10:31:42,904 views 47227 13262467072 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 10:31:42,906 basehttp 47227 13262467072 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 10:31:42,923 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 53249)
+WARNING 2025-05-07 10:31:46,289 log 47227 13241446400 Not Found: /favicon.ico
+WARNING 2025-05-07 10:31:46,290 basehttp 47227 13241446400 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 10:32:26,076 basehttp 47227 13262467072 - Broken pipe from ('127.0.0.1', 53256)
+INFO 2025-05-07 10:56:24,505 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:57:39,091 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:57:41,189 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:57:58,968 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 10:58:14,586 basehttp 47227 13241446400 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 10:58:27,249 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 10:58:52,457 views 47227 13241446400 Audio URL for transcript 12: /media/uploads/PETIT052_Mother_FreePlay_Audio_FlHzCIJ.WAV
+DEBUG 2025-05-07 10:58:52,458 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT052_Mother_FreePlay_Audio_FlHzCIJ.WAV, exists: True, size: 61746944
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 Transcript 12 content length: 16300
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	MOT MOT, MOT MOT, MOT MOT
+@ID:	eng|corpus_name|MOT|||||M
+DEBUG 2025-05-07 10:58:52,459 views 47227 13241446400 Audio URL: /media/uploads/PETIT052_Mother_FreePlay_Audio_FlHzCIJ.WAV
+INFO 2025-05-07 10:58:52,465 basehttp 47227 13241446400 "GET /transcript/12/ HTTP/1.1" 200 71174
+INFO 2025-05-07 10:58:52,576 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:58:52,577 basehttp 47227 13241446400 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:58:52,580 basehttp 47227 13279293440 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:58:52,581 basehttp 47227 14071869440 "GET /static/batch_processor/js/transcript_player/speaker_timeline.js HTTP/1.1" 304 0
+INFO 2025-05-07 10:59:07,741 basehttp 47227 14071869440 - Broken pipe from ('127.0.0.1', 53468)
+INFO 2025-05-07 11:01:39,329 basehttp 47227 13241446400 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 11:01:41,416 views 47227 13241446400 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 11:01:41,417 views 47227 13241446400 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 11:01:41,417 views 47227 13241446400 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 11:01:41,418 views 47227 13241446400 Transcript 11 content length: 8822
+DEBUG 2025-05-07 11:01:41,418 views 47227 13241446400 Found 0 missing segments
+DEBUG 2025-05-07 11:01:41,418 views 47227 13241446400 Diarization processed: False
+DEBUG 2025-05-07 11:01:41,419 views 47227 13241446400 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 11:01:41,419 views 47227 13241446400 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 11:01:41,425 basehttp 47227 13241446400 "GET /transcript/11/ HTTP/1.1" 200 52138
+WARNING 2025-05-07 11:01:43,270 log 47227 13262467072 Not Found: /favicon.ico
+WARNING 2025-05-07 11:01:43,270 basehttp 47227 13262467072 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 11:03:55,612 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 53509)
+INFO 2025-05-07 11:04:13,622 basehttp 47227 13262467072 "GET / HTTP/1.1" 200 3589
+INFO 2025-05-07 11:04:18,851 basehttp 47227 13262467072 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 11:04:19,371 basehttp 47227 13262467072 "GET /transcripts/ HTTP/1.1" 200 17149
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Audio URL for transcript 11: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Audio file path: /Users/haozhema/batchalign_app/media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV, exists: True, size: 61561344
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Audio file MIME type: audio/wav
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Transcript 11 content length: 8822
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Found 0 missing segments
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Diarization processed: False
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 CHAT content first 100 chars: @UTF8
+@Begin
+@Languages:	eng
+@Participants:	PAR0 Participant, PAR1 Participant
+@ID:	eng|corpus_name|
+DEBUG 2025-05-07 11:04:21,283 views 47227 13262467072 Audio URL: /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV
+INFO 2025-05-07 11:04:21,286 basehttp 47227 13262467072 "GET /transcript/11/ HTTP/1.1" 200 52138
+INFO 2025-05-07 11:04:21,463 basehttp 47227 13262467072 "GET /static/batch_processor/js/transcript_player/transcript_display.js HTTP/1.1" 304 0
+INFO 2025-05-07 11:04:21,465 basehttp 47227 13279293440 "GET /static/batch_processor/js/transcript_player/extract_timestamps.js HTTP/1.1" 304 0
+INFO 2025-05-07 11:04:21,468 basehttp 47227 14071869440 "GET /static/batch_processor/js/transcript_player/autoscroll_fix.js HTTP/1.1" 304 0
+INFO 2025-05-07 11:04:21,482 basehttp 47227 14088695808 "GET /static/batch_processor/js/transcript_player/timestamp_debug.js HTTP/1.1" 304 0
+INFO 2025-05-07 11:04:21,765 basehttp 47227 13262467072 "GET /media/uploads/PETIT030_Father_StructuredPlay_Audio_uFOzGnX.WAV HTTP/1.1" 200 61561344
+WARNING 2025-05-07 11:04:28,080 log 47227 13279293440 Not Found: /favicon.ico
+WARNING 2025-05-07 11:04:28,081 basehttp 47227 13279293440 "GET /favicon.ico HTTP/1.1" 404 7049
+INFO 2025-05-07 11:04:50,783 basehttp 47227 13262467072 - Broken pipe from ('127.0.0.1', 53528)
+INFO 2025-05-07 11:05:40,781 basehttp 47227 13262467072 "GET /settings/ HTTP/1.1" 200 11335
+INFO 2025-05-07 11:05:40,918 basehttp 47227 13262467072 "GET /get-api-keys/ HTTP/1.1" 200 127
+INFO 2025-05-07 11:06:11,349 basehttp 47227 13262467072 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 11:06:39,603 basehttp 47227 13262467072 "GET /forced-alignment/api/status/3/ HTTP/1.1" 200 413
+INFO 2025-05-07 11:09:21,837 basehttp 47227 13262467072 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 11:09:22,638 basehttp 47227 13262467072 "GET /forced-alignment/ HTTP/1.1" 200 17286
+INFO 2025-05-07 11:10:24,652 basehttp 47227 13262467072 "GET /transcripts/ HTTP/1.1" 200 17149
+INFO 2025-05-07 11:33:56,748 basehttp 47227 13241446400 - Broken pipe from ('127.0.0.1', 53525)

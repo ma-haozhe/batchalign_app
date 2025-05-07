@@ -16,49 +16,12 @@ window.initializeTranscriptDisplay = function() {
     // Display transcript content based on format
     if (chatContent && chatContent.trim() !== '') {
         console.log("Displaying CHAT format content");
-        displayChatContent(chatContent);
-    } else if (diarizationfunction extractChatTimestamps(text) {
-    // Handle both actual Unicode characters and escape sequences
-    // First decode any Unicode escape sequences in the text
-    const decodedText = decodeUnicodeEscapeSequences(text);
-    
-    // Try multiple timestamp formats, from most structured to least structured
-    
-    // Format 1: \u0015NUMBERS_NUMBERS\u0015 (standard CHAT format)
-    // Both backslash representation and actual NAK character (ASCII 21/hex 15)
-    const nakChar = String.fromCharCode(21); // NAK character
-    
-    // Look for both escaped and actual NAK characters
-    const regexPatterns = [
-        // Escaped with underscore (start_end)
-        new RegExp(`\\\\u?0*15(\\d+)_(\\d+)\\\\u?0*15`),
-        new RegExp(`${nakChar}(\\d+)_(\\d+)${nakChar}`),
-        
-        // Single timestamp with NAK
-        new RegExp(`\\\\u?0*15(\\d+)\\\\u?0*15`),
-        new RegExp(`${nakChar}(\\d+)${nakChar}`)
-    ];
-    
-    // Try each pattern
-    for (const regex of regexPatterns) {
-        const match = decodedText.match(regex) || text.match(regex);
-        if (match) {
-            if (match.length >= 3) {
-                // Format with start_end
-                return {
-                    start: parseInt(match[1]),
-                    end: parseInt(match[2])
-                };
-            } else if (match.length >= 2) {
-                // Format with just start time
-                const startTime = parseInt(match[1]);
-                return {
-                    start: startTime,
-                    end: startTime + 5000 // Default 5 seconds duration
-                };
-            }
-        }
-    }ata.trim() !== '') {
+        // Ensure Unicode decoding is applied to the entire content first
+        const decodedChatContent = typeof window.decodeUnicodeEscapeSequences === 'function' 
+            ? window.decodeUnicodeEscapeSequences(chatContent)
+            : chatContent;
+        displayChatContent(decodedChatContent);
+    } else if (diarizationData && diarizationData.trim() !== '') {
         console.log("Displaying diarization data");
         try {
             const segments = JSON.parse(diarizationData);
@@ -210,26 +173,46 @@ function displayChatContent(content) {
                 // Try multiple timestamp formats, from most common to least common
                 let timestampFound = false;
                 
-                // Format 1: Check for standard format "word word word 12345_67890"
-                // This is the format used in PETIT027_Mother_FreePlay_Audio_16kHz.mp3.cha
-                const words = text.split(' ');
-                const lastWord = words[words.length - 1];
+                // First try using our specialized external timestamp extractor
+                if (typeof window.extractTimestampsFromChat === 'function') {
+                    const externalTimestamps = window.extractTimestampsFromChat(text);
+                    if (externalTimestamps) {
+                        utteranceLine.dataset.start = externalTimestamps.start;
+                        utteranceLine.dataset.end = externalTimestamps.end;
+                        console.log(`Found timestamp using external extractor: ${externalTimestamps.start}-${externalTimestamps.end}ms for line: "${text}"`);
+                        
+                        // If the timestamp is at the end, remove it from displayed text
+                        if (text.endsWith(externalTimestamps.start + '_' + externalTimestamps.end)) {
+                            text = text.substring(0, text.lastIndexOf(externalTimestamps.start + '_' + externalTimestamps.end)).trim();
+                        }
+                        
+                        timestampFound = true;
+                    }
+                }
                 
-                if (lastWord && lastWord.match(/^\d+_\d+$/)) {
-                    // Found timestamp in format start_end
-                    const times = lastWord.split('_');
-                    const startTime = parseInt(times[0]);
-                    const endTime = parseInt(times[1]);
+                // If external extractor failed, try our built-in formats
+                if (!timestampFound) {
+                    // Format 1: Check for standard format "word word word 12345_67890"
+                    // This is the format used in PETIT027_Mother_FreePlay_Audio_16kHz.mp3.cha
+                    const words = text.split(' ');
+                    const lastWord = words[words.length - 1];
                     
-                    utteranceLine.dataset.start = startTime;
-                    utteranceLine.dataset.end = endTime;
-                    
-                    // Remove timestamp from displayed text
-                    words.pop();
-                    text = words.join(' ');
-                    
-                    console.log(`Found timestamp Format 1: ${startTime}-${endTime}ms for line: "${text}"`);
-                    timestampFound = true;
+                    if (lastWord && lastWord.match(/^\d+_\d+$/)) {
+                        // Found timestamp in format start_end
+                        const times = lastWord.split('_');
+                        const startTime = parseInt(times[0]);
+                        const endTime = parseInt(times[1]);
+                        
+                        utteranceLine.dataset.start = startTime;
+                        utteranceLine.dataset.end = endTime;
+                        
+                        // Remove timestamp from displayed text
+                        words.pop();
+                        text = words.join(' ');
+                        
+                        console.log(`Found timestamp Format 1: ${startTime}-${endTime}ms for line: "${text}"`);
+                        timestampFound = true;
+                    }
                 }
                 
                 // Format 2: Check for [12345-67890] format
@@ -741,10 +724,38 @@ function formatTime(seconds) {
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
 }
 
-// Helper function to extract CHAT format timestamps from text with backslashes
+// Helper function to extract CHAT format timestamps from text - this redirects to our external implementation
 function extractChatTimestamps(text) {
-    // The format appears to be \u0015NUMBERS_NUMBERS\u0015
-    // First, look for the pattern of backslash + digits with underscore + backslash
+    // If we have the external implementation available, use it for better detection
+    if (typeof window.extractChatTimestamps === 'function' && window.extractChatTimestamps !== extractChatTimestamps) {
+        const result = window.extractChatTimestamps(text);
+        if (result) {
+            console.log("Using external timestamp extractor:", result);
+            return result;
+        }
+    }
+    
+    console.log("Using fallback timestamp extractor for:", text);
+    
+    // Check for standard CHAT format with timestamp at end: "word word 12345_67890"
+    const endMatch = text.match(/\s(\d{4,5})_(\d{4,5})$/);
+    if (endMatch && endMatch.length >= 3) {
+        return {
+            start: parseInt(endMatch[1]),
+            end: parseInt(endMatch[2])
+        };
+    }
+    
+    // Check for timestamp after period: "word word. 12345_67890"
+    const periodMatch = text.match(/\.\s+(\d{4,5})_(\d{4,5})/);
+    if (periodMatch && periodMatch.length >= 3) {
+        return {
+            start: parseInt(periodMatch[1]),
+            end: parseInt(periodMatch[2])
+        };
+    }
+    
+    // Try backslash format with NAK character: \u0015NUMBERS_NUMBERS\u0015
     const fullMatch = text.match(/\\u?0*15(\d+)_(\d+)\\u?0*15/);
     if (fullMatch && fullMatch.length >= 3) {
         return {
@@ -753,7 +764,7 @@ function extractChatTimestamps(text) {
         };
     }
     
-    // Try alternate pattern with just one number
+    // Try alternate pattern with just one number: \u0015NUMBERS\u0015
     const singleMatch = text.match(/\\u?0*15(\d+)\\u?0*15/);
     if (singleMatch && singleMatch.length >= 2) {
         const startTime = parseInt(singleMatch[1]);
@@ -768,19 +779,39 @@ function extractChatTimestamps(text) {
 
 // Also add this to dynamically initialize timestamps if they weren't found on initial load
 function initializeTimestampsPostLoad() {
-    console.log("Initializing timestamps post-load");
+    console.log("Initializing timestamps post-load with enhanced extraction");
     const transcriptLines = document.querySelectorAll('.transcript-line:not([data-start])');
     let timestampsFound = 0;
     
     transcriptLines.forEach(line => {
         const text = line.textContent || '';
         
-        // Try to find timestamps in the text content using our various extraction methods
-        const timestamps = extractChatTimestamps(text);
+        // Try different timestamp extraction methods in order of preference
+        let timestamps = null;
+        
+        // 1. Try the dedicated external extractor first if available
+        if (typeof window.extractTimestampsFromChat === 'function') {
+            timestamps = window.extractTimestampsFromChat(text);
+            if (timestamps) {
+                console.log("Using dedicated extractor for line:", text);
+            }
+        }
+        
+        // 2. If that fails, try the local implementation
+        if (!timestamps) {
+            timestamps = extractChatTimestamps(text);
+            if (timestamps) {
+                console.log("Using local extractor for line:", text);
+            }
+        }
+        
+        // 3. If timestamp found, apply it to the element
         if (timestamps) {
             line.dataset.start = timestamps.start;
             line.dataset.end = timestamps.end;
             timestampsFound++;
+            
+            console.log(`Applied timestamp: ${timestamps.start}-${timestamps.end}ms to line:`, text);
             
             // Add timestamp display element if needed
             if (!line.querySelector('.transcript-timestamp')) {
@@ -800,7 +831,17 @@ function initializeTimestampsPostLoad() {
         }
     });
     
-    console.log(`Post-load initialization found ${timestampsFound} timestamps`);
+    console.log(`Post-load initialization found ${timestampsFound} timestamps out of ${transcriptLines.length} lines`);
+    
+    // If we found timestamps, trigger a highlight update to correctly position the transcript
+    if (timestampsFound > 0 && typeof window.audio !== 'undefined' && window.audio) {
+        const currentTime = window.audio.currentTime * 1000;
+        if (typeof window.updateTranscriptHighlight === 'function') {
+            console.log("Refreshing transcript highlight with current time:", currentTime);
+            window.updateTranscriptHighlight(currentTime);
+        }
+    }
+    
     return timestampsFound;
 }
 
@@ -840,10 +881,111 @@ function setupScrollHandling() {
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for transcript to load
     setTimeout(function() {
-        initializeTimestampsPostLoad();
+        const timestampsFound = initializeTimestampsPostLoad();
         setupScrollHandling();
+        
+        // If no timestamps were found on first try, attempt again with longer delay
+        if (timestampsFound === 0) {
+            console.log("No timestamps found on first pass, trying again after delay");
+            setTimeout(function() {
+                const secondAttempt = initializeTimestampsPostLoad();
+                console.log(`Second attempt found ${secondAttempt} timestamps`);
+                
+                // If still no success, run with a more aggressive extraction approach
+                if (secondAttempt === 0) {
+                    console.log("Trying with more aggressive timestamp detection");
+                    extractTimestampsFromAllText();
+                }
+            }, 2000);
+        }
     }, 2000); // 2 second delay to ensure transcript is loaded
 });
+
+// Helper function for aggressive timestamp extraction from any text content
+function extractTimestampsFromAllText() {
+    console.log("Running aggressive timestamp extraction");
+    const transcriptContainer = document.getElementById('transcriptContainer');
+    if (!transcriptContainer) return 0;
+    
+    // Get all text content from the container
+    const allText = transcriptContainer.textContent;
+    
+    // Extract all possible timestamp patterns
+    const timestampPatterns = [
+        /(\d{4,5})_(\d{4,5})/g,    // Format: 12345_67890
+        /\[(\d+)-(\d+)\]/g,         // Format: [12345-67890]
+        /\\u?0*15(\d+)_(\d+)\\u?0*15/g  // Format: \u001512345_67890\u0015
+    ];
+    
+    const foundTimestamps = [];
+    
+    // Extract all timestamp patterns
+    for (const pattern of timestampPatterns) {
+        const matches = [...allText.matchAll(pattern)];
+        if (matches.length > 0) {
+            matches.forEach(match => {
+                if (match.length >= 3) {
+                    foundTimestamps.push({
+                        start: parseInt(match[1]),
+                        end: parseInt(match[2]),
+                        text: match[0]
+                    });
+                }
+            });
+        }
+    }
+    
+    console.log(`Found ${foundTimestamps.length} timestamps in text`);
+    
+    // Now try to associate timestamps with lines
+    if (foundTimestamps.length > 0) {
+        const lines = document.querySelectorAll('.transcript-line:not([data-start])');
+        let timestampsApplied = 0;
+        
+        lines.forEach(line => {
+            const lineText = line.textContent || '';
+            
+            // Find a timestamp that matches this line
+            for (const timestamp of foundTimestamps) {
+                if (lineText.includes(timestamp.text)) {
+                    line.dataset.start = timestamp.start;
+                    line.dataset.end = timestamp.end;
+                    timestampsApplied++;
+                    
+                    // Add timestamp display element
+                    if (!line.querySelector('.transcript-timestamp')) {
+                        const timestampElement = document.createElement('span');
+                        timestampElement.className = 'transcript-timestamp';
+                        timestampElement.textContent = formatTime(timestamp.start / 1000);
+                        line.appendChild(timestampElement);
+                    }
+                    
+                    // Add click handler
+                    line.addEventListener('click', function() {
+                        console.log(`Seeking to time: ${line.dataset.start}ms`);
+                        if (typeof window.seekToTime === 'function') {
+                            window.seekToTime(parseInt(line.dataset.start));
+                        }
+                    });
+                    
+                    break;
+                }
+            }
+        });
+        
+        console.log(`Aggressive extraction applied ${timestampsApplied} timestamps`);
+        
+        // Update highlighting if we found timestamps
+        if (timestampsApplied > 0 && typeof window.updateTranscriptHighlight === 'function') {
+            const currentTime = window.audio ? window.audio.currentTime * 1000 : 0;
+            window.updateTranscriptHighlight(currentTime);
+        }
+        
+        return timestampsApplied;
+    }
+    
+    return 0;
+}
 
 // Helper function to decode Unicode escape sequences like \u000A (newline) and \u0015 (NAK)
 function decodeUnicodeEscapeSequences(text) {

@@ -345,11 +345,13 @@ document.addEventListener('DOMContentLoaded', function() {
 {% block extra_js %}
 <!-- Load modular JavaScript files -->
 <script src="{% static 'batch_processor/js/transcript_player/unicode_decoder.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/extract_timestamps.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/display_fix_helper.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/transcript_enhancer.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/autoscroll_fix.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/timestamp_debug.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/speaker_mapping.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/speaker_timeline.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/missing_segments.js' %}"></script>

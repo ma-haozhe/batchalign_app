@@ -17,29 +17,79 @@
             <h4>Start New Alignment</h4>
         </div>
         <div class="card-body">
-            <form id="alignmentForm">
-                <div class="mb-3">
-                    <label for="transcriptSelect" class="form-label">Select Transcript</label>
-                    <select class="form-select" id="transcriptSelect" required>
-                        <option value="">Choose a transcript...</option>
-                        {% for transcript in transcripts %}
-                        <option value="{{ transcript.id }}">{{ transcript.audio.title }}</option>
-                        {% endfor %}
-                    </select>
+            <ul class="nav nav-tabs mb-3" id="alignmentTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="upload-tab" data-bs-toggle="tab" data-bs-target="#upload" type="button" 
+                        role="tab" aria-controls="upload" aria-selected="true">Upload Files</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="transcript-tab" data-bs-toggle="tab" data-bs-target="#transcript" type="button" 
+                        role="tab" aria-controls="transcript" aria-selected="false">Use Existing Transcript</button>
+                </li>
+            </ul>
+            
+            <div class="tab-content" id="alignmentTabContent">
+                <!-- Upload Files Tab -->
+                <div class="tab-pane fade show active" id="upload" role="tabpanel" aria-labelledby="upload-tab">
+                    <form id="uploadForm" method="post" enctype="multipart/form-data" action="{% url 'forced_alignment:start_alignment' %}">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="title" class="form-label">Title</label>
+                            <input type="text" class="form-control" id="title" name="title" required placeholder="Enter a descriptive title">
+                        </div>
+                        <div class="mb-3">
+                            <label for="audioFile" class="form-label">Audio File <span class="text-danger">*</span></label>
+                            <input type="file" class="form-control" id="audioFile" name="audio_file" required 
+                                accept=".wav,.mp3,.ogg,.m4a">
+                            <div class="form-text">Supported formats: .wav, .mp3, .ogg, .m4a</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="chaFile" class="form-label">CHAT (.cha) File <small>(recommended)</small></label>
+                            <input type="file" class="form-control" id="chaFile" name="cha_file" accept=".cha">
+                            <div class="form-text">Upload a CHAT format file for best alignment results</div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="uploadEngineSelect" class="form-label">Alignment Engine</label>
+                            <select class="form-select" id="uploadEngineSelect" name="engine">
+                                <option value="AUTO" selected>Auto (Recommended)</option>
+                                <option value="WHISPER">Whisper (Better for non-English)</option>
+                                <option value="WAV2VEC">Wav2Vec (Faster for English)</option>
+                            </select>
+                            <div class="form-text">
+                                Auto will choose the best engine based on the audio language.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Start Alignment</button>
+                    </form>
                 </div>
-                <div class="mb-3">
-                    <label for="engineSelect" class="form-label">Alignment Engine</label>
-                    <select class="form-select" id="engineSelect">
-                        <option value="AUTO" selected>Auto (Recommended)</option>
-                        <option value="WHISPER">Whisper (Better for non-English)</option>
-                        <option value="WAV2VEC">Wav2Vec (Faster for English)</option>
-                    </select>
-                    <div class="form-text">
-                        Auto will choose Wav2Vec for English audio and Whisper for other languages.
-                    </div>
+                
+                <!-- Use Existing Transcript Tab -->
+                <div class="tab-pane fade" id="transcript" role="tabpanel" aria-labelledby="transcript-tab">
+                    <form id="transcriptForm">
+                        <div class="mb-3">
+                            <label for="transcriptSelect" class="form-label">Select Transcript</label>
+                            <select class="form-select" id="transcriptSelect" required>
+                                <option value="">Choose a transcript...</option>
+                                {% for transcript in transcripts %}
+                                <option value="{{ transcript.id }}">{{ transcript.audio.title }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label for="engineSelect" class="form-label">Alignment Engine</label>
+                            <select class="form-select" id="engineSelect">
+                                <option value="AUTO" selected>Auto (Recommended)</option>
+                                <option value="WHISPER">Whisper (Better for non-English)</option>
+                                <option value="WAV2VEC">Wav2Vec (Faster for English)</option>
+                            </select>
+                            <div class="form-text">
+                                Auto will choose Wav2Vec for English audio and Whisper for other languages.
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Start Alignment</button>
+                    </form>
                 </div>
-                <button type="submit" class="btn btn-primary">Start Alignment</button>
-            </form>
+            </div>
             <div id="alignmentStatus" class="mt-3"></div>
         </div>
     </div>
@@ -63,7 +113,13 @@
                     <tbody>
                         {% for task in alignment_tasks %}
                         <tr>
-                            <td>{{ task.original_transcript.audio.title }}</td>
+                            <td>
+                                {% if task.original_transcript %}
+                                {{ task.original_transcript.audio.title }}
+                                {% else %}
+                                {{ task.title }}
+                                {% endif %}
+                            </td>
                             <td><span class="badge bg-secondary">{{ task.get_engine_used_display }}</span></td>
                             <td>
                                 {% if task.status == 'COMPLETED' %}

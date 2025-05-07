@@ -9,7 +9,11 @@
         <div class="col">
             <h1>Forced Alignment Results</h1>
             <p class="lead">
-                Transcript: <strong>{{ task.original_transcript.audio.title }}</strong> | 
+                {% if task.original_transcript %}
+                    Transcript: <strong>{{ task.original_transcript.audio.title }}</strong> |
+                {% else %}
+                    Title: <strong>{{ task.title }}</strong> |
+                {% endif %}
                 Engine: <strong>{{ task.get_engine_used_display }}</strong> |
                 Status: <strong>{{ task.get_status_display }}</strong>
             </p>
@@ -31,7 +35,11 @@
                 
                 <div class="mb-4">
                     <audio id="audioPlayer" controls>
-                        <source src="{{ task.original_transcript.audio.audio_file.url }}" type="audio/mpeg">
+                        {% if task.audio_file %}
+                            <source src="{{ task.audio_file.url }}" type="audio/mpeg">
+                        {% elif task.original_transcript %}
+                            <source src="{{ task.original_transcript.audio.audio_file.url }}" type="audio/mpeg">
+                        {% endif %}
                         Your browser does not support the audio element.
                     </audio>
                 </div>
@@ -87,9 +95,9 @@
     </div>
 </div>
 
-{% block scripts %}
 <script>
     let audioPlayer;
+    let showingBreaks = true;
     
     document.addEventListener('DOMContentLoaded', function() {
         audioPlayer = document.getElementById('audioPlayer');
@@ -100,6 +108,9 @@
                 updateCurrentWord(audioPlayer.currentTime);
             });
         }
+        
+        // Initialize line break state
+        toggleWordBreaks();
     });
     
     // Function to seek to a specific time in the audio
@@ -108,6 +119,19 @@
             audioPlayer.currentTime = time;
             audioPlayer.play();
         }
+    }
+    
+    // Function to toggle line breaks between words
+    function toggleWordBreaks() {
+        const breaks = document.querySelectorAll('br');
+        const btn = document.getElementById('breakBtnText');
+        
+        breaks.forEach(br => {
+            br.style.display = showingBreaks ? 'none' : 'inline';
+        });
+        
+        btn.textContent = showingBreaks ? 'Show Line Breaks' : 'Hide Line Breaks';
+        showingBreaks = !showingBreaks;
     }
     
     // Function to update the currently highlighted word
@@ -158,7 +182,6 @@
         alert('JSON copied to clipboard');
     }
 </script>
-{% endblock %}
 
 {% block extra_css %}
 <style>

@@ -16,13 +16,14 @@ logger = logging.getLogger(__name__)
 def index(request):
     """
     Main page for forced alignment feature.
-    Shows a list of transcripts that can be force-aligned and existing alignment tasks.
+    Provides a form to upload audio and .cha files for alignment,
+    and shows a list of existing alignment tasks.
     """
-    # Get all transcripts that are available for alignment
-    transcripts = Transcript.objects.all()
-    
     # Get all alignment tasks
     alignment_tasks = ForcedAlignmentTask.objects.all()
+    
+    # Optionally get transcripts for reference
+    transcripts = Transcript.objects.all()
     
     context = {
         'transcripts': transcripts,
@@ -47,55 +48,118 @@ def alignment_detail(request, task_id):
 @csrf_exempt
 def start_alignment(request):
     """
-    API endpoint to start a forced alignment task.
-    Takes a transcript ID and alignment engine as input.
-    Returns the ID of the created task.
+    Endpoint to start a forced alignment task.
+    Handles two scenarios:
+    1. Direct file uploads - audio file and .cha file (HTML form submission)
+    2. Using an existing transcript (JSON API request)
+    
+    For form submissions, redirects to the detail page.
+    For API requests, returns JSON with task ID.
     """
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)
-            transcript_id = data.get('transcript_id')
-            engine = data.get('engine', 'AUTO')
-            
-            if not transcript_id:
-                return JsonResponse({'status': 'error', 'message': 'Transcript ID is required'})
-            
-            # Get the transcript
-            transcript = get_object_or_404(Transcript, id=transcript_id)
-            
-            # Create a new alignment task
-            task = ForcedAlignmentTask.objects.create(
-                original_transcript=transcript,
-                engine_used=engine,
-                status='PENDING'
-            )
-            
-            # In a production environment, we would queue this task with Celery
-            # For now, we'll just submit it directly and handle it in the view
-            # Submit the task to align_transcript function
-            # align_transcript.delay(task.id)  # Using Celery
-            
-            # For now, let's just mark it as processing (in a real implementation, this would be async)
-            task.status = 'PROCESSING'
-            task.save()
-            
-            # Call the function that will handle the alignment (this should be async in production)
-            # We'll implement this function next
-            try:
-                # This would be a Celery task in production
-                process_alignment_task(task.id)
-            except Exception as e:
-                logger.error(f"Error in alignment process: {e}")
-                task.status = 'FAILED'
-                task.error_message = str(e)
+            # Check if we're dealing with a form submission with files
+            if request.FILES:
+                # Handle direct file uploads from HTML form
+                audio_file = request.FILES.get('audio_file')
+                cha_file = request.FILES.get('cha_file')
+                title = request.POST.get('title', 'Unnamed Alignment')
+                engine = request.POST.get('engine', 'AUTO')
+                transcript_id = request.POST.get('transcript_id')
+                
+                # Make sure we have at least an audio file
+                if not audio_file:
+                    messages.error(request, 'Audio file is required')
+                    return redirect('forced_alignment:index')
+                
+                # Create a new alignment task
+                task = ForcedAlignmentTask(
+                    title=title,
+                    audio_file=audio_file,
+                    engine_used=engine,
+                    status='PENDING'
+                )
+                
+                # Add the .cha file if provided
+                if cha_file:
+                    task.cha_file = cha_file
+                
+                # Link to existing transcript if provided
+                if transcript_id:
+                    try:
+                        transcript = Transcript.objects.get(id=transcript_id)
+                        task.original_transcript = transcript
+                    except Transcript.DoesNotExist:
+                        pass  # We'll continue without linking a transcript
+                
                 task.save()
                 
-            return JsonResponse({'status': 'success', 'task_id': task.id})
+                # Mark as processing and save
+                task.status = 'PROCESSING'
+                task.save()
+                
+                # Process the alignment (in production this would be a Celery task)
+                try:
+                    process_alignment_task(task.id)
+                    messages.success(request, 'Forced alignment task started successfully')
+                    return redirect('forced_alignment:detail', task_id=task.id)
+                except Exception as e:
+                    logger.error(f"Error in alignment process: {e}")
+                    task.status = 'FAILED'
+                    task.error_message = str(e)
+                    task.save()
+                    messages.error(request, f'Error in alignment process: {str(e)}')
+                    return redirect('forced_alignment:index')
+            else:
+                # Handle JSON data for existing transcript (API request)
+                data = json.loads(request.body)
+                transcript_id = data.get('transcript_id')
+                engine = data.get('engine', 'AUTO')
+                
+                if not transcript_id:
+                    return JsonResponse({'status': 'error', 'message': 'Transcript ID is required when not uploading files'})
+                
+                # Get the transcript
+                transcript = get_object_or_404(Transcript, id=transcript_id)
+                
+                # Create a new alignment task
+                task = ForcedAlignmentTask.objects.create(
+                    title=f"Alignment for {transcript.audio.title}",
+                    original_transcript=transcript,
+                    engine_used=engine,
+                    status='PENDING'
+                )
+            
+                # Mark as processing and save
+                task.status = 'PROCESSING'
+                task.save()
+                
+                # Process the alignment (in production this would be a Celery task)
+                try:
+                    process_alignment_task(task.id)
+                except Exception as e:
+                    logger.error(f"Error in alignment process: {e}")
+                    task.status = 'FAILED'
+                    task.error_message = str(e)
+                    task.save()
+                    
+                return JsonResponse({'status': 'success', 'task_id': task.id})
+                
         except Exception as e:
             logger.error(f"Error starting alignment task: {e}")
-            return JsonResponse({'status': 'error', 'message': str(e)})
+            if request.FILES:
+                # If this was a form submission
+                messages.error(request, f'Error starting alignment task: {str(e)}')
+                return redirect('forced_alignment:index')
+            else:
+                # If this was an API request
+                return JsonResponse({'status': 'error', 'message': str(e)})
     
-    return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    # If not POST, redirect to index
+    if request.headers.get('accept') == 'application/json':
+        return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
+    else:
+        return redirect('forced_alignment:index')
 
 def check_alignment_status(request, task_id):
     """
@@ -127,21 +191,37 @@ def process_alignment_task(task_id):
         task.status = 'PROCESSING'
         task.save()
         
-        # Get the transcript
-        transcript = task.original_transcript
+        # Initialize variables
+        audio_file_path = None
+        cha_file_path = None
+        transcript_text = None
+        transcript_format = None
         
-        # Ensure audio file exists
-        if not transcript.audio or not transcript.audio.audio_file:
-            raise ValueError("No audio file associated with this transcript")
+        # Determine audio path - either from direct upload or from linked transcript
+        if task.audio_file:
+            audio_file_path = task.audio_file.path
+            logger.info(f"Using uploaded audio file: {audio_file_path}")
+        elif task.original_transcript and task.original_transcript.audio and task.original_transcript.audio.audio_file:
+            audio_file_path = task.original_transcript.audio.audio_file.path
+            logger.info(f"Using audio from transcript: {audio_file_path}")
+        else:
+            raise ValueError("No audio file available for alignment")
         
-        audio_file_path = transcript.audio.audio_file.path
+        # Check if audio file exists
         if not os.path.exists(audio_file_path):
             raise FileNotFoundError(f"Audio file not found at path: {audio_file_path}")
         
-        # Get the transcript text to align and handle different formats
-        # For CHAT files, we'll need to load it properly for batchalign
-        transcript_format = transcript.format
-        transcript_text = transcript.get_segments()
+        # Determine if we have a .cha file uploaded directly
+        if task.cha_file:
+            cha_file_path = task.cha_file.path
+            logger.info(f"Using uploaded .cha file: {cha_file_path}")
+            
+        # Get transcript text if we're using a linked transcript
+        if task.original_transcript:
+            transcript = task.original_transcript
+            transcript_format = transcript.format
+            transcript_text = transcript.get_segments()
+            logger.info(f"Using transcript text from linked transcript in {transcript_format} format")
         
         # Get the API keys
         rev_api_key = os.environ.get('REV_API_KEY', '')
@@ -167,51 +247,73 @@ def process_alignment_task(task_id):
         # Configure batchalign with the Rev.ai API key
         os.environ['REV_API_KEY'] = rev_api_key
         
-        # Handle different transcript formats
-        if transcript.format == 'CHAT':
-            # For CHAT format, we want to extract the text content for forced alignment
-            texts = []
-            for segment in transcript_text:
-                if not segment.get('is_missing', False) and segment.get('text', '').strip():
-                    # Strip any speaker markers (like *ABC:) from the lines
-                    text = segment.get('text', '').strip()
-                    if text.startswith('*') and ':' in text:
-                        text = text.split(':', 1)[1].strip()
-                    texts.append(text)
-            
-            # Create the document with audio and text
-            document = Document.new(text=texts, media_path=audio_file_path)
-            
-            # Check for .cha files - both direct or with the same name as audio
-            cha_path = audio_file_path + '.cha'
-            # Also check for .cha files in the root directory with the same base name
-            base_cha_path = os.path.join(settings.BASE_DIR, os.path.basename(audio_file_path).split('.')[0] + '.cha')
-            
-            if os.path.exists(cha_path):
+        # Initialize document variable
+        document = None
+        
+        # Priority 1: Use directly uploaded .cha file if available
+        if cha_file_path:
+            logger.info(f"Using uploaded .cha file for alignment")
+            try:
                 # Use CHATFile to load the .cha file and get a Document
-                chatfile = CHATFile(path=cha_path)
+                chatfile = CHATFile(path=cha_file_path)
                 document = chatfile.doc
                 # Update the media path since we need to explicitly set it
                 document.media.url = audio_file_path
-                logger.info(f"Loaded .cha file from {cha_path}")
-            elif os.path.exists(base_cha_path):
-                # Use CHATFile to load the .cha file from the root directory
-                chatfile = CHATFile(path=base_cha_path)
-                document = chatfile.doc
-                # Update the media path since we need to explicitly set it
-                document.media.url = audio_file_path
-                logger.info(f"Loaded .cha file from {base_cha_path}")
-            else:
-                logger.info("No corresponding .cha file found, using transcript text")
-        else:
-            # For other formats (like raw transcripts), just use the text as-is
-            texts = []
-            for segment in transcript_text:
-                if not segment.get('is_missing', False) and segment.get('text', '').strip():
-                    texts.append(segment.get('text', ''))
+            except Exception as e:
+                logger.error(f"Error loading .cha file: {e}")
+                raise Exception(f"Failed to load .cha file: {str(e)}")
+                
+        # Priority 2: Check for .cha files with matching names (if we don't have a document yet)
+        if document is None:
+            # Check in common locations
+            cha_paths = [
+                f"{audio_file_path}.cha",  # Same path with .cha extension added
+                os.path.join(settings.BASE_DIR, f"{os.path.basename(audio_file_path).split('.')[0]}.cha"),  # Root dir
+                os.path.join(os.path.dirname(audio_file_path), f"{os.path.basename(audio_file_path).split('.')[0]}.cha")  # Same dir
+            ]
             
-            # Create the document with audio and text
-            document = Document.new(text=texts, media_path=audio_file_path)
+            for cha_path in cha_paths:
+                if os.path.exists(cha_path):
+                    try:
+                        # Use CHATFile to load the .cha file and get a Document
+                        chatfile = CHATFile(path=cha_path)
+                        document = chatfile.doc
+                        # Update the media path since we need to explicitly set it
+                        document.media.url = audio_file_path
+                        logger.info(f"Loaded .cha file from {cha_path}")
+                        break
+                    except Exception as e:
+                        logger.warning(f"Found but failed to load .cha file at {cha_path}: {e}")
+                        # Continue to try other paths or fallback
+            
+        # Priority 3: Use transcript text if available (if we still don't have a document)
+        if document is None and transcript_text is not None:
+            logger.info("Using transcript text for alignment")
+            texts = []
+            
+            if transcript_format == 'CHAT':
+                # For CHAT format, extract text content for forced alignment
+                for segment in transcript_text:
+                    if not segment.get('is_missing', False) and segment.get('text', '').strip():
+                        # Strip any speaker markers (like *ABC:) from the lines
+                        text = segment.get('text', '').strip()
+                        if text.startswith('*') and ':' in text:
+                            text = text.split(':', 1)[1].strip()
+                        texts.append(text)
+            else:
+                # For other formats (like raw transcripts), just use the text as-is
+                for segment in transcript_text:
+                    if not segment.get('is_missing', False) and segment.get('text', '').strip():
+                        texts.append(segment.get('text', ''))
+            
+            if texts:
+                # Create the document with audio and text
+                document = Document.new(text=texts, media_path=audio_file_path)
+            
+        # Last resort: Just use the audio file alone (if we still don't have a document)
+        if document is None:
+            logger.warning("No .cha file or transcript text available, using audio file only")
+            document = Document.new(text=None, media_path=audio_file_path)
         
         # Choose the appropriate engine based on task.engine_used
         engine = task.engine_used

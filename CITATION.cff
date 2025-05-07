@@ -1,0 +1,56 @@
+cff-version: 1.2.0
+title: Batchalign App
+message: >-
+  If you use this software, please cite both this app and the 
+  original Batchalign2 software using the metadata from this file.
+type: software
+authors:
+  - given-names: Haozhe
+    family-names: Ma
+    affiliation: School of Psychology, Trinity College Dublin
+  - given-names: Jean
+    family-names: Quigley
+    affiliation: School of Psychology, Trinity College Dublin
+repository-code: 'https://github.com/ma-haozhe/batchalign_app'
+url: 'https://github.com/ma-haozhe/batchalign_app'
+abstract: >-
+  A front-end web app for Batchalign2, with enhancements for use 
+  by the School of Psychology at Trinity College Dublin. This app
+  provides a user-friendly interface for the Batchalign library,
+  specifically tailored for the School of Psychology's needs.
+license: BSD-3-Clause
+references:
+  - type: software
+    title: Batchalign2
+    authors:
+      - given-names: Brian
+        family-names: MacWhinney
+        email: macw@cmu.edu
+        affiliation: Carnegie Mellon University
+      - given-names: Houjun
+        family-names: Liu
+        email: houjun@stanford.edu
+        affiliation: Stanford University
+    repository-code: 'https://github.com/TalkBank/batchalign2'
+    url: 'https://github.com/TalkBank/batchalign2'
+    license: BSD-3-Clause
+preferred-citation:
+  type: article
+  authors:
+  - family-names: "Liu"
+    given-names: "Houjun"
+  - family-names: "MacWhinney"
+    given-names: "Brian"
+  - family-names: "Fromm"
+    given-names: "Davida"
+  - family-names: "Lanzi"
+    given-names: "Alyssa"
+  doi: "10.1044/2023_JSLHR-22-00642"
+  journal: "Journal of Speech, Language, and Hearing Research"
+  month: 7
+  start: 2421 # First page number
+  end: 2433 # Last page number
+  title: "Automation of Language Sample Analysis"
+  issue: 7
+  volume: 66
+  year: 2023

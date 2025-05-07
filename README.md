@@ -1,8 +1,8 @@
 # batchalign_app
-A frontend web app for batchalign and some improvements for school of psychology use.
+A front-end web app for [Batchalign2](https://github.com/TalkBank/batchalign2), with enhancements for use by the School of Psychology at Trinity College Dublin.
 
 ## Project Overview
-This is a Django web application that provides a user-friendly interface for the Batchalign library, specifically tailored for the School of Psychology's needs. The app allows users to upload audio files (both single and batch uploads) and processes them using Batchalign for transcription and diarization with CHAT format support.
+This is a Django web application that provides a user-friendly interface for the [Batchalign](https://github.com/TalkBank/batchalign2) library, specifically tailored for the School of Psychology's needs. The app allows users to upload audio files (both single and batch uploads) and processes them using Batchalign for transcription and diarization with CHAT format support.
 
 ## Current Implementation
 
@@ -182,4 +182,17 @@ python manage.py test batch_processor
    - Modern UI framework integration
    - Real-time updates
    - Advanced validation
+
+## License
+This project is licensed under the BSD-3-Clause license - see the [LICENSE](LICENSE) file for details.
+
+## Attribution
+This web application was developed by Haozhe Ma under the supervision of Dr. Jean Quigley at the School of Psychology, Trinity College Dublin. It is based on [Batchalign2](https://github.com/TalkBank/batchalign2) by TalkBank, developed by Brian MacWhinney (Carnegie Mellon University) and Houjun Liu (Stanford University).
+
+## Citation
+If you use this software in your research, please cite both this application and the original Batchalign2 software. The preferred citation for Batchalign2 is:
+
+Liu, H., MacWhinney, B., Fromm, D., & Lanzi, A. (2023). Automation of Language Sample Analysis. *Journal of Speech, Language, and Hearing Research, 66*(7), 2421-2433. DOI: [10.1044/2023_JSLHR-22-00642](https://doi.org/10.1044/2023_JSLHR-22-00642)
+
+For more information, see the [CITATION.cff](CITATION.cff) file.
 

@@ -479,42 +479,234 @@ window.skipForward = function(seconds) {
     }, 50);
 }
 
-// Global function to seek to a specific time in milliseconds
+// Global function to seek to a specific time in milliseconds - Enhanced for Edge/Chromium
 window.seekToTime = function(timeMs) {
     if (!timeMs && timeMs !== 0) {
         console.error("Invalid time provided to seekToTime:", timeMs);
-        return;
+        return false;
     }
     
     const timeInSeconds = timeMs / 1000;
-    console.log(`Seeking to ${timeInSeconds} seconds (${timeMs} ms)`);
+    console.log(`🎯 Edge-Enhanced Seeking to ${timeInSeconds} seconds (${timeMs} ms)`);
     
-    // Use WaveSurfer if it's available and ready
-    if (window.wavesurfer && window.wavesurfer.isReady) {
-        window.wavesurfer.seekTo(timeInSeconds / window.wavesurfer.getDuration());
-        
-        // If paused, show a visual indicator for the position change
-        if (!window.wavesurfer.isPlaying()) {
-            const progressElem = document.querySelector('.transcript-line.active .content-progress');
-            if (progressElem) {
-                progressElem.style.width = "0%";
+    let seekSuccess = false;
+    let errorMessages = [];
+    
+    // Method 1: Enhanced WaveSurfer seeking with Edge-specific validation
+    if (window.wavesurfer) {
+        try {
+            console.log('🔍 Checking WaveSurfer status:', {
+                exists: !!window.wavesurfer,
+                isReady: window.wavesurfer.isReady,
+                isDestroyed: window.wavesurfer.isDestroyed,
+                hasDuration: !!(window.wavesurfer.getDuration),
+                duration: window.wavesurfer.getDuration ? window.wavesurfer.getDuration() : 'unknown'
+            });
+            
+            // Enhanced readiness check specifically for Edge/Chromium
+            const isWaveSurferReady = window.wavesurfer.isReady && 
+                                     !window.wavesurfer.isDestroyed && 
+                                     window.wavesurfer.getDuration && 
+                                     window.wavesurfer.getDuration() > 0 &&
+                                     window.wavesurfer.seekTo; // Ensure seekTo method exists
+            
+            if (isWaveSurferReady) {
+                const duration = window.wavesurfer.getDuration();
+                console.log(`✅ WaveSurfer ready - Duration: ${duration}s, seeking to: ${timeInSeconds}s`);
+                
+                if (timeInSeconds <= duration && timeInSeconds >= 0) {
+                    const seekRatio = timeInSeconds / duration;
+                    console.log(`📍 Seeking to WaveSurfer ratio: ${seekRatio}`);
+                    
+                    // Edge-specific: Use a small delay before seeking
+                    setTimeout(() => {
+                        try {
+                            window.wavesurfer.seekTo(seekRatio);
+                            console.log('✅ WaveSurfer seek command sent');
+                            
+                            // Verify the seek worked by checking position after a brief delay
+                            setTimeout(() => {
+                                const actualTime = window.wavesurfer.getCurrentTime();
+                                console.log(`🔍 Verification: Expected ${timeInSeconds}s, actual ${actualTime}s`);
+                                
+                                const tolerance = 0.5; // Allow 0.5 second tolerance
+                                if (Math.abs(actualTime - timeInSeconds) <= tolerance) {
+                                    console.log('✅ WaveSurfer seek verified successful');
+                                } else {
+                                    console.warn('⚠️ WaveSurfer seek position mismatch, forcing HTML5 update');
+                                    // Force HTML5 audio to sync
+                                    if (window.player && window.player.currentTime !== actualTime) {
+                                        window.player.currentTime = actualTime;
+                                    }
+                                }
+                            }, 100);
+                            
+                        } catch (seekError) {
+                            console.error('❌ WaveSurfer seekTo failed:', seekError);
+                            errorMessages.push(`WaveSurfer seek: ${seekError.message}`);
+                        }
+                    }, 10); // Small delay for Edge
+                    
+                    seekSuccess = true;
+                } else {
+                    const msg = `WaveSurfer seek out of bounds: ${timeInSeconds}s not in [0, ${duration}s]`;
+                    console.error('❌', msg);
+                    errorMessages.push(msg);
+                }
+            } else {
+                const msg = 'WaveSurfer not ready for seeking';
+                console.warn('⚠️', msg);
+                errorMessages.push(msg);
             }
+        } catch (error) {
+            const msg = `WaveSurfer seeking error: ${error.message}`;
+            console.error('❌', msg);
+            errorMessages.push(msg);
         }
-    } 
-    // Otherwise fall back to the HTML5 audio player
-    else if (window.player) {
-        window.player.currentTime = timeInSeconds;
-        
-        // Update the display manually
-        const formattedTime = formatTime(timeInSeconds);
-        document.getElementById('currentTime').textContent = formattedTime;
-        
-        // Also update transcript highlighting
-        if (typeof window.updateTranscriptTime === 'function') {
-            window.updateTranscriptTime(timeMs);
-        } else if (typeof window.updateTranscriptHighlight === 'function') {
-            window.updateTranscriptHighlight(timeMs);
+    }
+    
+    // Method 2: Enhanced HTML5 audio fallback (critical for Edge/Chromium)
+    if (!seekSuccess && window.player) {
+        try {
+            console.log('🔄 Falling back to HTML5 audio player');
+            
+            // Wait for audio to be ready
+            const waitForAudioReady = () => {
+                return new Promise((resolve, reject) => {
+                    let attempts = 0;
+                    const maxAttempts = 20;
+                    
+                    const checkReady = () => {
+                        attempts++;
+                        
+                        if (window.player.duration && !isNaN(window.player.duration) && window.player.duration > 0) {
+                            resolve();
+                        } else if (attempts >= maxAttempts) {
+                            reject(new Error('Audio duration never became available'));
+                        } else {
+                            setTimeout(checkReady, 50);
+                        }
+                    };
+                    
+                    checkReady();
+                });
+            };
+            
+            waitForAudioReady().then(() => {
+                console.log(`✅ HTML5 audio ready - Duration: ${window.player.duration}s`);
+                
+                if (timeInSeconds <= window.player.duration && timeInSeconds >= 0) {
+                    const oldTime = window.player.currentTime;
+                    
+                    // Edge-specific: Set up event listener to verify seek
+                    const verifySeeking = () => {
+                        console.log(`📍 HTML5 audio seek: ${oldTime}s -> ${window.player.currentTime}s (target: ${timeInSeconds}s)`);
+                        window.player.removeEventListener('seeked', verifySeeking);
+                    };
+                    
+                    window.player.addEventListener('seeked', verifySeeking);
+                    window.player.currentTime = timeInSeconds;
+                    
+                    seekSuccess = true;
+                    console.log('✅ HTML5 audio seek initiated');
+                    
+                    // Update the display manually
+                    const formattedTime = formatTime(timeInSeconds);
+                    const currentTimeElem = document.getElementById('currentTime');
+                    if (currentTimeElem) {
+                        currentTimeElem.textContent = formattedTime;
+                    }
+                    
+                    // Force transcript update with multiple attempts for Edge
+                    const forceTranscriptUpdate = (attempts = 0) => {
+                        if (attempts >= 3) return;
+                        
+                        setTimeout(() => {
+                            console.log(`🔄 Forcing transcript update attempt ${attempts + 1}`);
+                            
+                            if (typeof window.updateTranscriptTime === 'function') {
+                                window.updateTranscriptTime(timeMs);
+                            } else if (typeof window.updateTranscriptHighlight === 'function') {
+                                window.updateTranscriptHighlight(timeMs);
+                            } else if (typeof window.highlightCurrentTranscript === 'function') {
+                                window.highlightCurrentTranscript(timeMs);
+                            }
+                            
+                            // Try again if the first attempt didn't work
+                            if (attempts === 0) {
+                                forceTranscriptUpdate(attempts + 1);
+                            }
+                        }, 50 + (attempts * 50));
+                    };
+                    
+                    forceTranscriptUpdate();
+                    
+                } else {
+                    const msg = `HTML5 audio seek out of bounds: ${timeInSeconds}s not in [0, ${window.player.duration}s]`;
+                    console.error('❌', msg);
+                    errorMessages.push(msg);
+                }
+            }).catch(error => {
+                const msg = `HTML5 audio not ready: ${error.message}`;
+                console.error('❌', msg);
+                errorMessages.push(msg);
+            });
+            
+        } catch (error) {
+            const msg = `HTML5 audio seeking error: ${error.message}`;
+            console.error('❌', msg);
+            errorMessages.push(msg);
         }
+    }
+    
+    // Method 3: Last resort - direct audio element manipulation with Edge enhancements
+    if (!seekSuccess) {
+        try {
+            console.log('🆘 Last resort: trying direct audio element access');
+            const audioElements = document.querySelectorAll('audio');
+            
+            for (let i = 0; i < audioElements.length; i++) {
+                const audio = audioElements[i];
+                console.log(`🔍 Checking audio element ${i}:`, {
+                    duration: audio.duration,
+                    readyState: audio.readyState,
+                    networkState: audio.networkState
+                });
+                
+                if (audio.duration && !isNaN(audio.duration) && audio.duration > 0) {
+                    console.log(`✅ Found usable audio element ${i} with duration: ${audio.duration}s`);
+                    
+                    if (timeInSeconds <= audio.duration && timeInSeconds >= 0) {
+                        const oldTime = audio.currentTime;
+                        audio.currentTime = timeInSeconds;
+                        seekSuccess = true;
+                        console.log(`✅ Direct audio seek successful: ${oldTime}s -> ${timeInSeconds}s`);
+                        break;
+                    }
+                }
+            }
+        } catch (error) {
+            const msg = `Direct audio element error: ${error.message}`;
+            console.error('❌', msg);
+            errorMessages.push(msg);
+        }
+    }
+    
+    // Final result logging
+    if (seekSuccess) {
+        console.log(`✅ SEEK SUCCESSFUL: Moved to ${timeInSeconds}s (${timeMs}ms)`);
+        return true;
+    } else {
+        console.error(`❌ ALL SEEKING METHODS FAILED for time: ${timeMs}ms`);
+        console.error('💥 Error summary:', errorMessages);
+        console.error('🔍 Audio state:', {
+            wavesurfer: !!window.wavesurfer,
+            wavesurferReady: !!(window.wavesurfer && window.wavesurfer.isReady),
+            player: !!window.player,
+            playerDuration: window.player ? window.player.duration : 'no player',
+            audioElements: document.querySelectorAll('audio').length
+        });
+        return false;
     }
 };
 

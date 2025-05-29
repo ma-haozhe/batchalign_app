@@ -1,7 +1,7 @@
 #Haozhe Ma 2024-Dec-11
 #____________________________
 
-import os, logging
+import os, logging, time
 from django.shortcuts import render, redirect
 from django.http import JsonResponse, HttpResponse
 from .models import AudioFile, Transcript, SpeakerMap
@@ -713,7 +713,8 @@ def view_transcript(request, transcript_id):
             'diarization_data': diarization_data_json,
             'missing_segments': missing_segments_json,
             'chat_content': transcript.chat_content,
-            'raw_content': transcript.raw_content
+            'raw_content': transcript.raw_content,
+            'timestamp': int(time.time())  # Cache busting timestamp
         }
         
         return render(request, 'batch_processor/transcript_player.html', context)

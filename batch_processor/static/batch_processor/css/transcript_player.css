@@ -126,10 +126,11 @@
     opacity: 0.8;
 }
 
-/* Transcript container */
+/* Transcript container - FIXED: Ensure proper viewport constraint */
 .transcript-container {
+    height: 600px !important; /* Force fixed height instead of max-height */
     max-height: 600px;
-    overflow-y: auto;
+    overflow-y: auto !important; /* Force scrollbar */
     border: 1px solid #e9ecef;
     border-radius: 4px;
     padding: 10px;
@@ -138,6 +139,94 @@
     font-size: 14px;
     background-color: #fff;
     box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    position: relative; /* Ensure proper positioning context */
+}
+
+/* CRITICAL: Ensure transcript container is properly height-constrained */
+/* MAXIMUM SPECIFICITY - Override any Bootstrap or conflicting styles */
+div.tab-pane div#transcriptContainer.transcript-container,
+div.card-body div.tab-content div.tab-pane div#transcriptContainer.transcript-container,
+#transcriptContainer.transcript-container,
+.transcript-container#transcriptContainer {
+    height: 600px !important;
+    max-height: 600px !important;
+    min-height: 600px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    display: block !important;
+    position: relative !important;
+    border: 1px solid #e9ecef !important;
+    border-radius: 4px !important;
+    padding: 10px !important;
+    background-color: #fff !important;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05) !important;
+}
+
+/* Mobile responsive */
+@media (max-width: 992px) {
+    div.tab-pane div#transcriptContainer.transcript-container,
+    div.card-body div.tab-content div.tab-pane div#transcriptContainer.transcript-container,
+    #transcriptContainer.transcript-container,
+    .transcript-container#transcriptContainer {
+        height: 400px !important;
+        max-height: 400px !important;
+        min-height: 400px !important;
+    }
+}
+
+/* Ensure parent containers don't interfere */
+.tab-pane#chat {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+.card-body {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+.tab-content {
+    overflow: visible !important;
+    height: auto !important;
+}
+
+/* Force the transcript container to be the scrolling element, not the page */
+.transcript-container {
+    contain: layout style !important; /* CSS containment to prevent layout interference */
+}
+
+/* Ensure content inside transcript container can grow */
+.transcript-container .transcript-line {
+    flex-shrink: 0; /* Prevent lines from shrinking */
+}
+
+/* Ensure the container is truly constrained */
+.transcript-container * {
+    box-sizing: border-box;
+}
+
+/* Force scroll behavior on transcript container specifically */
+.transcript-container {
+    scrollbar-width: thin;
+    scrollbar-color: #c1c1c1 #f1f1f1;
+}
+
+.transcript-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.transcript-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+.transcript-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+.transcript-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
 .transcript-header {
@@ -254,6 +343,11 @@
     box-shadow: 0 1px 1px rgba(0,0,0,0.05);
 }
 
+/* Hide CHAT format timestamps by default */
+.chat-timestamp {
+    display: none !important;
+}
+
 /* Comment lines */
 .comment-line {
     color: #6c757d;
@@ -296,73 +390,47 @@
 .raw-content {
     max-height: 600px;
     overflow-y: auto;
-    white-space: pre-wrap;
-    font-family: monospace;
-    font-size: 14px;
-    line-height: 1.5;
+    font-family: 'SF Mono', 'Monaco', 'Inconsolata', 'Roboto Mono', 'Consolas', monospace;
+    font-size: 13px;
+    line-height: 1.4;
     background-color: #f8f9fa;
-    border-radius: 4px;
-    padding: 10px;
-}
-
-/* Missing segments */
-.missing-segment {
-    padding: 8px 12px;
-    margin: 8px 0;
-    background-color: #fff3cd;
-    border-left: 3px solid #ffc107;
+    border: 1px solid #e9ecef;
     border-radius: 6px;
-    cursor: pointer;
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    transition: all 0.2s ease;
-    box-shadow: 0 1px 2px rgba(255, 193, 7, 0.2);
+    padding: 16px;
+    color: #333;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
 }
 
-.missing-segment:hover {
-    background-color: #ffe8a1;
-    transform: translateX(2px);
+.raw-content::-webkit-scrollbar {
+    width: 8px;
 }
 
-.missing-segment-icon {
-    color: #ffc107;
-    margin-right: 8px;
+.raw-content::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
 }
 
-.missing-segment-text {
-    color: #856404;
-    flex: 1;
+.raw-content::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
 }
 
-.missing-segment-text.placeholder-text {
-    font-style: italic;
-    color: #856404;
-    opacity: 0.8;
+.raw-content::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
 }
 
-.missing-segment .btn {
-    margin-left: 8px;
-    opacity: 0.8;
-    transition: opacity 0.2s ease;
-}
-
-.missing-segment:hover .btn {
-    opacity: 1;
-}
-
-.missing-segment-edit {
-    width: 100%;
-    margin-top: 8px;
-}
-
-.missing-segment .input-group {
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-}
-
-/* Speaker mapping form */
-.color-box {
-    border: 1px solid rgba(0,0,0,0.1);
+.raw-content::before {
+    content: "📄 Raw Transcript Content";
+    display: block;
+    font-weight: bold;
+    color: #007bff;
+    margin-bottom: 12px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #dee2e6;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
 }
 
 /* Segment list */
@@ -417,9 +485,13 @@
 
 /* Responsive adjustments */
 @media (max-width: 992px) {
-    .transcript-container {
-        max-height: 400px;
+    .transcript-container,
+    #transcriptContainer.transcript-container {
+        height: 400px !important;
+        max-height: 400px !important;
+        min-height: 400px !important;
     }
+}
     
     .speaker-label {
         min-width: 70px;
@@ -478,7 +550,40 @@
     }
     
     .raw-content {
-        background-color: #2d3748;
-        color: #eee;
+        background-color: #1e1e1e;
+        color: #d4d4d4;
+        border-color: #404040;
+    }
+    
+    .raw-content::before {
+        color: #4fc3f7;
+        border-bottom-color: #404040;
+    }
+    
+    .raw-content::-webkit-scrollbar-track {
+        background: #2d2d2d;
+    }
+    
+    .raw-content::-webkit-scrollbar-thumb {
+        background: #555;
+    }
+    
+    .raw-content::-webkit-scrollbar-thumb:hover {
+        background: #777;
+    }
+    
+    .nav-tabs .nav-link {
+        color: #adb5bd;
+    }
+    
+    .nav-tabs .nav-link.active {
+        background-color: #1e1e1e;
+        color: #4fc3f7;
+        border-color: #404040 #404040 #1e1e1e;
+    }
+    
+    .nav-tabs .nav-link:hover:not(.active) {
+        background-color: #2d2d2d;
+        border-color: #404040;
     }
 }

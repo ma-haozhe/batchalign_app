@@ -121,6 +121,10 @@ USE_TZ = True
 STATIC_URL = 'static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
+# Cache busting for development - force browser to reload JS/CSS files
+import time
+STATIC_VERSION = str(int(time.time()))  # Use timestamp as version
+
 # Media files (Uploaded files)
 MEDIA_URL = '/media/'
 

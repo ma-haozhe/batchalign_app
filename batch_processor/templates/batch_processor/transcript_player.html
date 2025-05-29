@@ -5,6 +5,9 @@
 
 {% block extra_head %}
 <link rel="stylesheet" href="{% static 'batch_processor/css/transcript_player.css' %}">
+<link rel="stylesheet" href="{% static 'batch_processor/css/timestamp_fixes.css' %}">
+<link rel="stylesheet" href="{% static 'batch_processor/css/chat_format_fixes.css' %}">
+<link rel="stylesheet" href="{% static 'batch_processor/css/edge_compatible_highlight.css' %}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
 <!-- WaveSurfer.js for audio visualization - trying multiple CDNs for reliability -->
 <script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
@@ -316,6 +319,15 @@ document.addEventListener('DOMContentLoaded', function() {
                                 <button id="runTestsBtn" class="btn btn-sm btn-outline-primary">
                                     <i class="bi bi-check2-circle"></i> Run Self-Tests
                                 </button>
+                                <button id="testHighlightBtn" class="btn btn-sm btn-outline-warning ms-2">
+                                    <i class="bi bi-highlighter"></i> Test Highlighting
+                                </button>
+                                <button id="diagHighlightBtn" class="btn btn-sm btn-outline-info ms-2">
+                                    <i class="bi bi-search"></i> Diagnostics
+                                </button>
+                                <button id="continuousTestBtn" class="btn btn-sm btn-outline-success ms-2">
+                                    <i class="bi bi-play-circle"></i> Auto Test
+                                </button>
                             </div>
                             
                             <div id="debugInfo" class="mt-3" style="display: none;">
@@ -343,18 +355,23 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block extra_js %}
-<!-- Load modular JavaScript files -->
-<script src="{% static 'batch_processor/js/transcript_player/unicode_decoder.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/extract_timestamps.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/display_fix_helper.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/transcript_enhancer.js' %}"></script>
-<script src="{% static 'batch_processor/js/transcript_player/autoscroll_fix.js' %}"></script>
+<!-- Load modular JavaScript files with cache busting -->
+<script src="{% static 'batch_processor/js/transcript_player/extract_timestamps.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/fixed_transcript_init.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/autoscroll_fix.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/fallback_init.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/transcript_diagnostics.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/edge_compatible_highlight.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/highlight_diagnostics.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/display_fix_helper.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/transcript_enhancer.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/timestamp_debug.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/speaker_mapping.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/speaker_timeline.js' %}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/missing_segments.js' %}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/height_enforcer.js' %}?v={{ timestamp }}"></script>
 
 <!-- Common functionality and initialization -->
 <script>
@@ -525,7 +542,12 @@ document.addEventListener('DOMContentLoaded', function() {
             if (this.checked) {
                 const activeElement = document.querySelector('.transcript-line.active');
                 if (activeElement) {
-                    scrollToElement(activeElement);
+                    // Use enhanced auto-scroll function if available
+                    if (typeof window.performAutoScroll === 'function') {
+                        window.performAutoScroll(activeElement);
+                    } else if (typeof scrollToElement === 'function') {
+                        scrollToElement(activeElement);
+                    }
                 }
             }
         });
@@ -560,9 +582,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Create a centralized updateTranscriptHighlight function that other modules can call
     window.updateTranscriptTime = function(currentTimeMs) {
-        if (!currentTimeMs && window.wavesurfer && window.wavesurfer.isReady) {
+        if ((currentTimeMs === null || currentTimeMs === undefined) && window.wavesurfer && window.wavesurfer.isReady) {
             currentTimeMs = window.wavesurfer.getCurrentTime() * 1000;
-        } else if (!currentTimeMs && window.player) {
+        } else if ((currentTimeMs === null || currentTimeMs === undefined) && window.player) {
             currentTimeMs = window.player.currentTime * 1000;
         }
         
@@ -570,6 +592,50 @@ document.addEventListener('DOMContentLoaded', function() {
             window.highlightTranscriptAtTime(currentTimeMs);
         }
     };
+    
+    // Add test highlighting button handler
+    document.getElementById('testHighlightBtn')?.addEventListener('click', function() {
+        console.log('Testing highlighting functionality...');
+        
+        if (typeof window.testTranscriptHighlighting === 'function') {
+            const result = window.testTranscriptHighlighting();
+            
+            if (result) {
+                alert('Highlighting test completed! Check console for details.');
+            } else {
+                alert('No transcript lines found to test highlighting with.');
+            }
+        } else {
+            alert('Highlighting test function not available.');
+        }
+    });
+    
+    // Add diagnostics button handler
+    document.getElementById('diagHighlightBtn')?.addEventListener('click', function() {
+        console.log('Running highlighting diagnostics...');
+        
+        if (typeof window.runHighlightDiagnostics === 'function') {
+            window.runHighlightDiagnostics();
+        } else {
+            alert('Diagnostics function not available.');
+        }
+    });
+    
+    // Add continuous test button handler
+    document.getElementById('continuousTestBtn')?.addEventListener('click', function() {
+        console.log('Running continuous highlighting test...');
+        
+        if (typeof window.runContinuousHighlightTest === 'function') {
+            const started = window.runContinuousHighlightTest();
+            if (started) {
+                alert('Continuous test started! Watch the transcript lines and check console for details.');
+            } else {
+                alert('Cannot run continuous test - not enough transcript lines.');
+            }
+        } else {
+            alert('Continuous test function not available.');
+        }
+    });
     
     // Set a timeout to check if everything loaded correctly
     setTimeout(function() {
@@ -597,6 +663,20 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 }
+        
+        // CRITICAL: Force transcript container constraints after everything loads
+        console.log("🔧 Applying transcript container constraints...");
+        
+        // Use the new height enforcer if available
+        if (window.heightEnforcer && typeof window.heightEnforcer.enforce === 'function') {
+            console.log("🚀 Using enhanced height enforcer...");
+            window.heightEnforcer.enforce();
+        } else if (typeof window.forceTranscriptContainerConstraints === 'function') {
+            console.log("🔧 Using fallback constraint function...");
+            window.forceTranscriptContainerConstraints();
+        } else {
+            console.warn("⚠️ No height constraint functions available!");
+        }
     }, 5000);
 });
 </script>

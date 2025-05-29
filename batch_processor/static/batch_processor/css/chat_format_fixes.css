@@ -1,0 +1,82 @@
+/**
+ * Additional CSS fixes for CHAT format display
+ */
+
+/* Hide CHAT format timestamps by default */
+.chat-timestamp {
+    display: none !important;
+}
+
+/* Add special styling for decoded NAK control characters */
+.transcript-line .control-char {
+    display: none; /* Hide control characters */
+}
+
+/* Better display for word-level timing lines */
+.word-timing-line {
+    margin-left: 20px;
+    font-size: 0.9em;
+    color: #666;
+    border-left: 2px solid #eee;
+    padding-left: 10px;
+}
+
+/* Highlight active lines more clearly */
+.transcript-line.active {
+    background-color: rgba(0, 123, 255, 0.1);
+    border-left: 3px solid #007bff;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* Style for next-up lines */
+.transcript-line.next-up {
+    background-color: rgba(0, 123, 255, 0.05);
+    border-left: 1px dashed #007bff;
+}
+
+/* Fix pre-formatted code blocks in CHAT format */
+.transcript-line pre, 
+.transcript-line code {
+    white-space: pre-wrap;
+    word-break: break-word;
+    font-family: monospace;
+    font-size: 0.9em;
+    background-color: #f8f9fa;
+    border-radius: 3px;
+    padding: 2px 4px;
+}
+
+/* Better progress indicator */
+.content-progress {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 3px;
+    background-color: #007bff;
+    opacity: 0.7;
+    transition: width 0.2s ease;
+}
+
+/* Target specific Unicode escape sequences if they appear in the rendered text */
+.transcript-line .utterance-text:contains('\\u') {
+    color: #dc3545; /* Mark with red to indicate something's wrong */
+    text-decoration: underline wavy #dc3545;
+}
+
+.transcript-line .utterance-text:contains('\\0') {
+    color: #dc3545; 
+    text-decoration: underline wavy #dc3545;
+}
+
+/* Diagnostic styling */
+.diagnostic-section {
+    border-bottom: 1px solid #eee;
+    padding-bottom: 8px;
+}
+
+#timestampSamples {
+    margin: 8px 0;
+    padding: 8px;
+    background-color: #f8f9fa;
+    border-radius: 4px;
+}

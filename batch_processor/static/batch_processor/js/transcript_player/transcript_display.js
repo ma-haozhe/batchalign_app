@@ -181,10 +181,8 @@ function displayChatContent(content) {
                         utteranceLine.dataset.end = externalTimestamps.end;
                         console.log(`Found timestamp using external extractor: ${externalTimestamps.start}-${externalTimestamps.end}ms for line: "${text}"`);
                         
-                        // If the timestamp is at the end, remove it from displayed text
-                        if (text.endsWith(externalTimestamps.start + '_' + externalTimestamps.end)) {
-                            text = text.substring(0, text.lastIndexOf(externalTimestamps.start + '_' + externalTimestamps.end)).trim();
-                        }
+                        // Store the original text for display - DO NOT modify it to remove timestamps
+                        // as this would alter the original CHAT format display
                         
                         timestampFound = true;
                     }
@@ -289,9 +287,73 @@ function displayChatContent(content) {
                 // Set click handler if we have a timestamp
                 if (utteranceLine.dataset.start) {
                     utteranceLine.addEventListener('click', function() {
-                        console.log(`Seeking to time: ${utteranceLine.dataset.start}ms`);
+                        const startTimeMs = parseInt(utteranceLine.dataset.start);
+                        console.log(`Seeking to time: ${startTimeMs}ms (from data-start="${utteranceLine.dataset.start}")`);
+                        
+                        // Enhanced Edge browser fix: Multiple validation checks
+                        if (isNaN(startTimeMs) || startTimeMs < 0) {
+                            console.error(`Invalid timestamp detected: "${utteranceLine.dataset.start}" -> ${startTimeMs}`);
+                            return;
+                        }
+                        
+                        // Additional validation: check if timestamp is reasonable (not too large)
+                        if (startTimeMs > 999999999) { // More than ~277 hours is unreasonable
+                            console.error(`Timestamp too large: ${startTimeMs}ms`);
+                            return;
+                        }
+                        
+                        // Edge browser fix: Try multiple seeking methods with better error handling
+                        let seekSuccess = false;
+                        
+                        // Method 1: Use custom seekToTime function
                         if (typeof window.seekToTime === 'function') {
-                            window.seekToTime(parseInt(utteranceLine.dataset.start));
+                            try {
+                                console.log(`Attempting to seek using window.seekToTime(${startTimeMs})`);
+                                window.seekToTime(startTimeMs);
+                                seekSuccess = true;
+                            } catch (error) {
+                                console.error("Error with window.seekToTime:", error);
+                            }
+                        }
+                        
+                        // Method 2: Direct wavesurfer seeking (fallback)
+                        if (!seekSuccess && window.wavesurfer && window.wavesurfer.isReady) {
+                            try {
+                                const seconds = startTimeMs / 1000;
+                                const duration = window.wavesurfer.getDuration();
+                                console.log(`Wavesurfer fallback: seeking to ${seconds}s out of ${duration}s`);
+                                
+                                if (duration > 0 && seconds <= duration) {
+                                    const seekRatio = seconds / duration;
+                                    console.log(`Seeking to ratio: ${seekRatio}`);
+                                    window.wavesurfer.seekTo(seekRatio);
+                                    seekSuccess = true;
+                                } else {
+                                    console.error(`Invalid seek: ${seconds}s > duration ${duration}s`);
+                                }
+                            } catch (error) {
+                                console.error("Error with wavesurfer direct seek:", error);
+                            }
+                        }
+                        
+                        // Method 3: HTML5 audio element seeking (last resort)
+                        if (!seekSuccess) {
+                            try {
+                                const audioElement = document.querySelector('audio');
+                                if (audioElement) {
+                                    const seconds = startTimeMs / 1000;
+                                    console.log(`HTML5 audio fallback: seeking to ${seconds}s`);
+                                    audioElement.currentTime = seconds;
+                                    seekSuccess = true;
+                                }
+                            } catch (error) {
+                                console.error("Error with HTML5 audio seek:", error);
+                            }
+                        }
+                        
+                        if (!seekSuccess) {
+                            console.error("All seeking methods failed");
+                            alert(`Could not seek to timestamp: ${startTimeMs}ms. Please try refreshing the page.`);
                         }
                     });
                 }
@@ -312,11 +374,17 @@ function displayChatContent(content) {
                 
                 utteranceLine.appendChild(speakerLabel);
                 
-                // Create timestamp display
+                // Add special class for %wor lines so we can treat them differently
+                if (line.startsWith('%wor:')) {
+                    utteranceLine.classList.add('wordlevel-line');
+                }
+                
+                // Create hidden timestamp display for CHAT format - only shown in certain views
                 if (utteranceLine.dataset.start) {
                     const timestamp = document.createElement('span');
-                    timestamp.className = 'transcript-timestamp';
+                    timestamp.className = 'transcript-timestamp chat-timestamp';
                     timestamp.textContent = formatTime(utteranceLine.dataset.start / 1000);
+                    // Don't use inline style, rely on CSS classes for display control
                     utteranceLine.appendChild(timestamp);
                 }
                 
@@ -409,9 +477,54 @@ function displayChatContent(content) {
             wordSpans.forEach(wordSpan => {
                 if (wordSpan.dataset.start) {
                     wordSpan.addEventListener('click', function() {
-                        console.log(`Seeking to word time: ${wordSpan.dataset.start}ms`);
+                        const startTimeMs = parseInt(wordSpan.dataset.start);
+                        console.log(`Seeking to word time: ${startTimeMs}ms`);
+                        
+                        // Enhanced validation and seeking (same as line-level)
+                        if (isNaN(startTimeMs) || startTimeMs < 0) {
+                            console.error(`Invalid word timestamp: "${wordSpan.dataset.start}" -> ${startTimeMs}`);
+                            return;
+                        }
+                        
+                        if (startTimeMs > 999999999) {
+                            console.error(`Word timestamp too large: ${startTimeMs}ms`);
+                            return;
+                        }
+                        
+                        let seekSuccess = false;
+                        
+                        // Try multiple seeking methods
                         if (typeof window.seekToTime === 'function') {
-                            window.seekToTime(parseInt(wordSpan.dataset.start));
+                            try {
+                                window.seekToTime(startTimeMs);
+                                seekSuccess = true;
+                            } catch (error) {
+                                console.error("Error with window.seekToTime for word:", error);
+                            }
+                        }
+                        
+                        if (!seekSuccess && window.wavesurfer && window.wavesurfer.isReady) {
+                            try {
+                                const seconds = startTimeMs / 1000;
+                                const duration = window.wavesurfer.getDuration();
+                                if (duration > 0 && seconds <= duration) {
+                                    window.wavesurfer.seekTo(seconds / duration);
+                                    seekSuccess = true;
+                                }
+                            } catch (error) {
+                                console.error("Error with wavesurfer for word:", error);
+                            }
+                        }
+                        
+                        if (!seekSuccess) {
+                            try {
+                                const audioElement = document.querySelector('audio');
+                                if (audioElement) {
+                                    audioElement.currentTime = startTimeMs / 1000;
+                                }
+                            } catch (error) {
+                                console.error("Error with HTML5 audio for word:", error);
+                            }
                         }
                     });
                 }
@@ -537,88 +650,126 @@ function updateTranscriptHighlight(currentTimeMs) {
     const transcriptLines = document.querySelectorAll('.transcript-line[data-start]');
     if (transcriptLines.length === 0) {
         console.debug("No transcript lines with timestamps found");
-            return;
-        }
-        
-        // First remove any existing active/next-up classes
+        return;
+    }
+    
+    // First remove any existing active/next-up classes
     document.querySelectorAll('.transcript-line.active, .transcript-line.next-up').forEach(el => {
-            el.classList.remove('active', 'next-up');
-        });
-        
+        el.classList.remove('active', 'next-up');
+    });
+    
     // Track state for our search
-        let activeElement = null;
-        let closestPastLine = null;
-        let closestPastDistance = Infinity;
-        let nextUpLine = null;
-        let nextUpDistance = Infinity;
+    let activeElement = null;
+    let closestPastLine = null;
+    let closestPastDistance = Infinity;
+    let nextUpLine = null;
+    let nextUpDistance = Infinity;
+    
+    // Sort transcript lines by start time for more reliable sequencing
+    const sortedLines = Array.from(transcriptLines).sort((a, b) => {
+        return parseInt(a.dataset.start) - parseInt(b.dataset.start);
+    });
+    
+    // First pass: look for exact matches where current time falls within a segment
+    for (const line of sortedLines) {
+        // Skip lines without timing data
+        if (!line.dataset.start) continue;
         
-    // Scan all transcript lines with time data to find the appropriate one
-        transcriptLines.forEach(line => {
-            // Skip lines without timing data
-            if (!line.dataset.start) return;
-            
         const start = parseInt(line.dataset.start);
         const end = line.dataset.end ? parseInt(line.dataset.end) : start + 10000; // Default 10sec if no end
-            
-            // Check if this line is active (current time is within its range)
+        
+        // Check if this line is active (current time is within its range)
         if (currentTimeMs >= start && currentTimeMs <= end) {
+            // Ignore %wor lines as active elements (they just provide word-level timing)
+            const textContent = line.textContent || '';
+            if (!textContent.trim().startsWith('%wor:')) {
                 line.classList.add('active');
                 activeElement = line;
+                // Found an active line, no need to keep looking
+                break;
             }
+        }
+    }
+    
+    // Second pass: If no active element found, find nearest lines
+    if (!activeElement) {
+        for (const line of sortedLines) {
+            if (!line.dataset.start) continue;
+            
+            const start = parseInt(line.dataset.start);
+            const end = line.dataset.end ? parseInt(line.dataset.end) : start + 10000;
+            
+            // Skip %wor lines for fallback too
+            const textContent = line.textContent || '';
+            if (textContent.trim().startsWith('%wor:')) continue;
+            
             // Track closest past line for fallback
-        else if (start < currentTimeMs) {
-            const distance = currentTimeMs - start;
+            if (start < currentTimeMs) {
+                const distance = currentTimeMs - start;
                 if (distance < closestPastDistance) {
                     closestPastDistance = distance;
                     closestPastLine = line;
                 }
             }
             // Track upcoming line for "next up" indicator
-        else if (start > currentTimeMs) {
-            const distance = start - currentTimeMs;
+            else if (start > currentTimeMs) {
+                const distance = start - currentTimeMs;
                 if (distance < nextUpDistance) {
                     nextUpDistance = distance;
                     nextUpLine = line;
                 }
             }
-        });
-        
-        // If we found an active element, update its progress indicator and scroll to it if auto-scroll is enabled
-        if (activeElement) {
-            // Update the progress indicator
-            const progressElem = activeElement.querySelector('.content-progress');
-            if (progressElem) {
-                // Calculate percentage progress through this segment
-                const start = parseInt(activeElement.dataset.start);
-                const end = activeElement.dataset.end ? parseInt(activeElement.dataset.end) : start + 10000;
-                const duration = end - start;
-                const elapsed = currentTimeMs - start;
-                const percentage = Math.min(100, Math.max(0, (elapsed / duration) * 100));
-                
-                // Apply the width as a percentage
-                progressElem.style.width = `${percentage}%`;
-                
-                console.log(`Progress indicator: ${percentage.toFixed(1)}% (${elapsed}ms / ${duration}ms)`);
-            }
+        }
+    }
+    
+    // If we found an active element, update its progress indicator and scroll to it if auto-scroll is enabled
+    if (activeElement) {
+        // Update the progress indicator
+        const progressElem = activeElement.querySelector('.content-progress');
+        if (progressElem) {
+            // Calculate percentage progress through this segment
+            const start = parseInt(activeElement.dataset.start);
+            const end = activeElement.dataset.end ? parseInt(activeElement.dataset.end) : start + 10000;
+            const duration = end - start;
+            const elapsed = currentTimeMs - start;
+            const percentage = Math.min(100, Math.max(0, (elapsed / duration) * 100));
             
-            if (window.autoScroll) {
+            // Apply the width as a percentage
+            progressElem.style.width = `${percentage}%`;
+            
+            console.log(`Progress indicator: ${percentage.toFixed(1)}% (${elapsed}ms / ${duration}ms)`);
+        }
+        
+        if (window.autoScroll) {
+            // Use the enhanced auto-scroll function if available
+            if (typeof window.performAutoScroll === 'function') {
+                window.performAutoScroll(activeElement);
+            } else {
+                // Fallback to local function
                 scrollToElement(activeElement);
             }
         }
-        // Otherwise, fallback to closest past line
-        else if (closestPastLine) {
-            closestPastLine.classList.add('active');
-            
-            // Clear the progress indicator for past lines
-            const progressElem = closestPastLine.querySelector('.content-progress');
-            if (progressElem) {
-                progressElem.style.width = '100%';
-            }
-            
-            if (window.autoScroll) {
+    }
+    // Otherwise, fallback to closest past line
+    else if (closestPastLine) {
+        closestPastLine.classList.add('active');
+        
+        // Clear the progress indicator for past lines
+        const progressElem = closestPastLine.querySelector('.content-progress');
+        if (progressElem) {
+            progressElem.style.width = '100%';
+        }
+        
+        if (window.autoScroll) {
+            // Use the enhanced auto-scroll function if available
+            if (typeof window.performAutoScroll === 'function') {
+                window.performAutoScroll(closestPastLine);
+            } else {
+                // Fallback to local function
                 scrollToElement(closestPastLine);
             }
         }
+    }
         
         // If we have a "next up" line coming within 5 seconds, highlight it
         if (nextUpLine && nextUpDistance < 5000) {
@@ -877,6 +1028,133 @@ function setupScrollHandling() {
     console.log("Scroll handling initialized");
 }
 
+// CRITICAL: Force transcript container height constraints
+// This function forcibly applies height constraints using JavaScript when CSS fails
+window.forceTranscriptContainerConstraints = function() {
+    console.log("🚨 ENFORCING TRANSCRIPT CONTAINER CONSTRAINTS 🚨");
+
+    // Find the transcript container with multiple selector fallbacks
+    const selectors = [
+        '#transcriptContainer',
+        '.transcript-container', 
+        '#transcriptContainer.transcript-container',
+        'div#transcriptContainer',
+        '.tab-pane .transcript-container'
+    ];
+    
+    let container = null;
+    
+    for (const selector of selectors) {
+        const element = document.querySelector(selector);
+        if (element) {
+            container = element;
+            console.log(`✅ Found container with selector: ${selector}`);
+            break;
+        }
+    }
+    
+    if (!container) {
+        console.error("❌ No transcript container found!");
+        return false;
+    }
+    
+    console.log("📊 BEFORE constraints:");
+    console.log(`Height: ${container.offsetHeight}px`);
+    console.log(`Computed height: ${getComputedStyle(container).height}`);
+    console.log(`Max-height: ${getComputedStyle(container).maxHeight}`);
+    console.log(`Overflow-Y: ${getComputedStyle(container).overflowY}`);
+    
+    // FORCE CONSTRAINTS with maximum priority - use JavaScript style override
+    const forceStyles = {
+        'height': '600px',
+        'max-height': '600px', 
+        'min-height': '600px',
+        'overflow-y': 'auto',
+        'overflow-x': 'hidden',
+        'display': 'block',
+        'position': 'relative',
+        'border': '1px solid #e9ecef',
+        'border-radius': '4px',
+        'padding': '10px',
+        'background-color': '#fff',
+        'box-shadow': 'inset 0 1px 3px rgba(0,0,0,0.05)'
+    };
+    
+    // Apply styles with maximum priority using setProperty with important
+    for (const [property, value] of Object.entries(forceStyles)) {
+        container.style.setProperty(property, value, 'important');
+    }
+    
+    // Clear any conflicting styles from parent containers
+    const parents = [container.parentElement, container.parentElement?.parentElement];
+    parents.forEach((parent, index) => {
+        if (parent) {
+            console.log(`🔧 Clearing parent ${index + 1} constraints`);
+            parent.style.setProperty('height', 'auto', 'important');
+            parent.style.setProperty('max-height', 'none', 'important');
+            parent.style.setProperty('overflow', 'visible', 'important');
+        }
+    });
+    
+    // Force a reflow to apply changes
+    container.offsetHeight;
+    
+    console.log("📊 AFTER constraints:");
+    console.log(`Height: ${container.offsetHeight}px`);
+    console.log(`Computed height: ${getComputedStyle(container).height}`);
+    console.log(`Max-height: ${getComputedStyle(container).maxHeight}`);
+    console.log(`Overflow-Y: ${getComputedStyle(container).overflowY}`);
+    
+    // Verify the fix worked
+    const isFixed = container.offsetHeight <= 650 && container.offsetHeight >= 550;
+    
+    if (isFixed) {
+        console.log("✅ CONTAINER CONSTRAINTS SUCCESSFULLY APPLIED!");
+        
+        // Test if auto-scroll is now working
+        if (typeof performAutoScroll === 'function') {
+            console.log("🧪 Testing auto-scroll after constraint fix...");
+            const lines = container.querySelectorAll('.transcript-line, [data-start-time]');
+            if (lines.length > 10) {
+                const testLine = lines[Math.floor(lines.length / 2)];
+                const result = performAutoScroll(testLine);
+                console.log(`Auto-scroll test result: ${result}`);
+                
+                if (container.scrollTop > 0) {
+                    console.log("✅ Auto-scroll is now working!");
+                } else {
+                    console.log("⚠️ Auto-scroll still needs attention");
+                }
+            }
+        }
+    } else {
+        console.log(`❌ CONSTRAINTS FAILED! Height is still ${container.offsetHeight}px`);
+        console.log("🔍 Checking for inline styles or other interference...");
+        
+        // Log any inline styles that might be interfering
+        if (container.style.cssText) {
+            console.log("Inline styles found:", container.style.cssText);
+        }
+        
+        // Check computed styles for unexpected values
+        const computed = getComputedStyle(container);
+        console.log("All computed height-related styles:", {
+            height: computed.height,
+            maxHeight: computed.maxHeight,
+            minHeight: computed.minHeight,
+            overflow: computed.overflow,
+            overflowY: computed.overflowY,
+            display: computed.display,
+            position: computed.position
+        });
+    }
+    
+    return isFixed;
+};
+
+// Also expose a simpler version for manual debugging
+window.fixTranscriptHeight = window.forceTranscriptContainerConstraints;
+
 // Call the initialization functions after the transcript is loaded
 document.addEventListener('DOMContentLoaded', function() {
     // Wait for transcript to load
@@ -998,8 +1276,12 @@ function decodeUnicodeEscapeSequences(text) {
             return String.fromCharCode(parseInt(hex, 16));
         })
         // Handle other backslash formats like \0015XXXX\0015 (CHAT format specific notation)
-        .replace(/\\0*15(\d+)(?:_\d+)?\\0*15/g, (match, num) => {
-            return num; // For timing info, just keep the number part
+        .replace(/\\0*15(\d+(?:_\d+)?)\\0*15/g, (match, timestamps) => {
+            return timestamps; // Keep the full timestamp part including underscore and end time
+        })
+        // Handle actual NAK characters (Unicode 0015) around timestamps
+        .replace(/\u0015(\d+(?:_\d+)?)\u0015/g, (match, timestamps) => {
+            return timestamps; // Keep the full timestamp part including underscore and end time
         })
         // Handle \1234 style escape sequences (octal notation)
         .replace(/\\([0-7]{3})/g, (match, oct) => {

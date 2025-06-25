@@ -34,3 +34,6 @@ media/uploads/
 
 # Exclude batchalign2 source
 batchalign2/
+
+db.sqlite3
+debug.log

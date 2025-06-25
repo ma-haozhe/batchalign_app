@@ -34,3 +34,5 @@ media/uploads/
 
 # Exclude batchalign2 source
 batchalign2/
+
+debug.log

@@ -7,6 +7,12 @@ from django.http import JsonResponse, HttpResponse
 from .models import AudioFile, Transcript, SpeakerMap
 from django.core.files.storage import FileSystemStorage
 import batchalign as ba
+from batchalign.pipelines.asr.whisperx import WhisperXEngine
+from batchalign.pipelines.speaker.nemo_speaker import NemoSpeakerEngine
+import threading
+
+# Global WhisperXEngine instance for reuse
+whisperx_engine = WhisperXEngine(lang="eng")
 import json
 from pathlib import Path
 import shutil
@@ -115,42 +121,13 @@ def update_speaker_mapping(request, transcript_id):
             return JsonResponse({'status': 'error', 'message': str(e)})
     return JsonResponse({'status': 'error', 'message': 'Invalid request method'})
 
-def process_audio(audio_file_path, lang="eng"):
+def process_audio(audio_file_path, lang="eng", num_speakers=2):
     try:
-        # Load API keys from environment or .env file
-        import os
-        from pathlib import Path
+        # Initialize NemoSpeakerEngine per request with dynamic number of speakers
+        nemo_speaker_engine = NemoSpeakerEngine(num_speakers=num_speakers)
         
-        # Create .env file path
-        env_path = Path(settings.BASE_DIR) / '.env'
-        
-        # First check environment variables
-        rev_api_key = os.environ.get('REV_API_KEY', '')
-        hf_token = os.environ.get('HF_TOKEN', '')
-        
-        # Then check .env file if it exists
-        if env_path.exists():
-            with open(env_path, 'r') as f:
-                for line in f:
-                    if line.strip().startswith('REV_API_KEY='):
-                        rev_api_key = line.strip().split('=', 1)[1].strip('"\'')
-                    elif line.strip().startswith('HF_TOKEN='):
-                        hf_token = line.strip().split('=', 1)[1].strip('"\'')
-        
-        if not rev_api_key:
-            logger.error("Rev.ai API key is not set. Please set it in the settings page.")
-            return None, None, None, None
-            
-        # Temporarily set environment variables for this process
-        os.environ['REV_API_KEY'] = rev_api_key
-        if hf_token:
-            os.environ['HF_TOKEN'] = hf_token
-                
-        # Initialize the Rev.ai ASR engine with explicit API key parameter
-        asr_engine = ba.RevEngine(key=rev_api_key, lang=lang)
-        
-        # Create a Batchalign pipeline
-        nlp = ba.BatchalignPipeline(asr_engine)
+        # Create Batchalign pipeline with global WhisperXEngine and NemoSpeakerEngine
+        nlp = ba.BatchalignPipeline(whisperx_engine, nemo_speaker_engine)
         
         # Process the audio file
         doc = nlp(audio_file_path)

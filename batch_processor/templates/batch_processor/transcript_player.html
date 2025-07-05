@@ -3,59 +3,12 @@
 
 {% block title %}Transcript Player{% endblock %}
 
-{% block extra_head %}
+{% block extra_css %}
 <link rel="stylesheet" href="{% static 'batch_processor/css/transcript_player.css' %}">
 <link rel="stylesheet" href="{% static 'batch_processor/css/timestamp_fixes.css' %}">
 <link rel="stylesheet" href="{% static 'batch_processor/css/chat_format_fixes.css' %}">
 <link rel="stylesheet" href="{% static 'batch_processor/css/edge_compatible_highlight.css' %}">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.0/font/bootstrap-icons.css">
-<!-- WaveSurfer.js for audio visualization - trying multiple CDNs for reliability -->
-<script src="https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js"></script>
-<script>
-// More robust WaveSurfer loading with multiple fallbacks
-document.addEventListener('DOMContentLoaded', function() {
-  // Check if WaveSurfer loaded correctly
-  if (typeof WaveSurfer === 'undefined') {
-    console.error("ERROR: Primary WaveSurfer.js CDN failed! Trying alternative sources...");
-    
-    // Try loading from alternate CDN
-    var script1 = document.createElement('script');
-    script1.src = "https://cdnjs.cloudflare.com/ajax/libs/wavesurfer.js/6.6.4/wavesurfer.min.js";
-    script1.onload = function() {
-      console.log("WaveSurfer loaded from CDNJS fallback");
-      // Explicitly trigger initialization after fallback loads
-      if (typeof window.initializeAudioPlayer === 'function') {
-        setTimeout(function() {
-          console.log("Re-initializing audio player after fallback load");
-          window.initializeAudioPlayer();
-        }, 500);
-      }
-    };
-    
-    // Add a second fallback if needed
-    script1.onerror = function() {
-      console.error("ERROR: CDNJS fallback also failed! Trying last resort...");
-      var script2 = document.createElement('script');
-      script2.src = "https://cdn.jsdelivr.net/npm/wavesurfer.js@6.6.4/dist/wavesurfer.min.js";
-      script2.onload = function() {
-        console.log("WaveSurfer loaded from NPM fallback");
-        // Explicitly trigger initialization after fallback loads
-        if (typeof window.initializeAudioPlayer === 'function') {
-  setTimeout(function() {
-            console.log("Re-initializing audio player after fallback load");
-            window.initializeAudioPlayer();
-          }, 500);
-        }
-      };
-      document.head.appendChild(script2);
-    };
-    
-    document.head.appendChild(script1);
-  } else {
-    console.log("WaveSurfer.js loaded successfully from primary source");
-  }
-});
-</script>
 {% endblock %}
 
 {% block content %}
@@ -355,10 +308,61 @@ document.addEventListener('DOMContentLoaded', function() {
 {% endblock %}
 
 {% block extra_js %}
+<!-- WaveSurfer.js for audio visualization - LOCAL VERSION for reliability -->
+<script src="{% static 'batch_processor/js/wavesurfer.min.js' %}?v={{ timestamp }}"></script>
+<script>
+// Verify WaveSurfer loaded and log version info
+document.addEventListener('DOMContentLoaded', function() {
+  console.log("🔍 Checking WaveSurfer.js loading...");
+  
+  if (typeof WaveSurfer !== 'undefined') {
+    console.log("✅ WaveSurfer.js loaded successfully!");
+    console.log("📋 WaveSurfer object:", WaveSurfer);
+    
+    // Log version info if available
+    if (WaveSurfer.VERSION) {
+      console.log("📋 WaveSurfer version:", WaveSurfer.VERSION);
+    } else {
+      console.log("📋 WaveSurfer v6.x (no version property)");
+    }
+    
+    // Trigger audio player initialization
+    console.log("🔄 Triggering audio player initialization...");
+    if (typeof window.initializeAudioPlayer === 'function') {
+      setTimeout(function() {
+        window.initializeAudioPlayer();
+      }, 500); // Give more time for scripts to load
+    } else {
+      console.error("❌ Audio player initialization function not available yet");
+    }
+  } else {
+    console.error("❌ WaveSurfer.js failed to load from local file!");
+    console.log("🔄 Falling back to CDN...");
+    
+    // Fallback to CDN if local file fails
+    var script = document.createElement('script');
+    script.src = "https://unpkg.com/wavesurfer.js@6.6.4/dist/wavesurfer.min.js";
+    script.onload = function() {
+      console.log("✅ WaveSurfer loaded from CDN fallback");
+      setTimeout(function() {
+        if (typeof window.initializeAudioPlayer === 'function') {
+          window.initializeAudioPlayer();
+        }
+      }, 500);
+    };
+    script.onerror = function() {
+      console.error("❌ Both local and CDN WaveSurfer failed to load!");
+    };
+    document.head.appendChild(script);
+  }
+});
+</script>
+
 <!-- Load modular JavaScript files with cache busting -->
 <script src="{% static 'batch_processor/js/transcript_player/extract_timestamps.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/fixed_transcript_init.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/audio_player.js' %}?v={{ timestamp }}"></script>
+<script src="{% static 'batch_processor/js/transcript_player/basic_wavesurfer.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/transcript_display.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/autoscroll_fix.js' %}?v={{ timestamp }}"></script>
 <script src="{% static 'batch_processor/js/transcript_player/fallback_init.js' %}?v={{ timestamp }}"></script>
@@ -416,7 +420,18 @@ document.getElementById('showDebugBtn')?.addEventListener('click', function() {
             const debugContent = document.querySelector('.debug-content');
             if (debugContent) {
                 let html = '<ul class="list-unstyled">';
-                html += `<li><strong>WaveSurfer ready:</strong> ${window.wavesurfer ? window.wavesurfer.isReady : 'Not initialized'}</li>`;
+                
+                // Check WaveSurfer status (v6 compatible)
+                let wavesurferStatus = 'Not initialized';
+                if (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) {
+                    wavesurferStatus = `Main WS ready (${window.wavesurfer.getDuration().toFixed(1)}s)`;
+                } else if (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0) {
+                    wavesurferStatus = `Basic WS ready (${window.basicWaveSurfer.getDuration().toFixed(1)}s)`;
+                } else if (window.wavesurfer) {
+                    wavesurferStatus = 'WS created but not ready';
+                }
+                
+                html += `<li><strong>WaveSurfer status:</strong> ${wavesurferStatus}</li>`;
                 html += `<li><strong>Auto-scroll:</strong> ${window.autoScroll}</li>`;
                 html += `<li><strong>Audio element:</strong> ${document.getElementById('audioPlayer') ? 'Found' : 'Not found'}</li>`;
                 html += `<li><strong>Audio URL:</strong> ${document.getElementById('audioPlayer')?.src || 'None'}</li>`;
@@ -440,7 +455,7 @@ document.getElementById('runTestsBtn')?.addEventListener('click', function() {
     setTimeout(() => {
         const tests = [
             { name: "WaveSurfer loaded", passed: typeof WaveSurfer !== 'undefined' },
-            { name: "WaveSurfer initialized", passed: window.wavesurfer && window.wavesurfer.isReady },
+            { name: "WaveSurfer initialized", passed: (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) || (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0) },
             { name: "Audio player exists", passed: !!document.getElementById('audioPlayer') },
             { name: "Transcript container exists", passed: !!document.getElementById('transcriptContainer') },
             { name: "Chat content loaded", passed: document.getElementById('chatContent')?.value.length > 0 },
@@ -482,13 +497,23 @@ document.getElementById('runTestsBtn')?.addEventListener('click', function() {
         
         // Add fix issues button handler
         document.getElementById('fixIssuesBtn')?.addEventListener('click', function() {
-            // Reload wavesurfer if needed
-            if (!window.wavesurfer || !window.wavesurfer.isReady) {
+            // Check if WaveSurfer needs fixing (v6 compatible)
+            const wavesurferReady = (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) || 
+                                   (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0);
+            
+            if (!wavesurferReady) {
                 console.log("Attempting to fix WaveSurfer...");
                 
                 // Try to reinitialize WaveSurfer
                 if (typeof window.initializeAudioPlayer === 'function') {
                     window.initializeAudioPlayer();
+                }
+                
+                // Also try basic WaveSurfer directly
+                if (typeof window.initializeBasicWaveSurfer === 'function') {
+                    setTimeout(() => {
+                        window.initializeBasicWaveSurfer();
+                    }, 1000);
                 }
             }
             
@@ -502,11 +527,16 @@ document.getElementById('runTestsBtn')?.addEventListener('click', function() {
             }
             
             // Reload the page as a last resort if nothing else works
-            if (!window.wavesurfer || !window.wavesurfer.isReady) {
-                if (confirm("Unable to fix issues automatically. Reload the page?")) {
-                    window.location.reload();
+            setTimeout(() => {
+                const finalCheck = (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) || 
+                                  (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0);
+                
+                if (!finalCheck) {
+                    if (confirm("Unable to fix issues automatically. Reload the page?")) {
+                        window.location.reload();
+                    }
                 }
-            }
+            }, 3000);
         });
     }, 500);
 });
@@ -553,14 +583,59 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Initialize modular JS components
+    // Enhanced initialization sequence
+    console.log("🚀 Starting enhanced audio player initialization...");
+    
+    // Step 1: Initialize main audio player
     if (typeof window.initializeAudioPlayer === 'function') {
-        console.log("Initializing audio player...");
-        window.initializeAudioPlayer();
+        console.log("   📊 Initializing main audio player...");
+        try {
+            window.initializeAudioPlayer();
+        } catch (error) {
+            console.error("   ❌ Main audio player initialization failed:", error);
+        }
     } else {
-        console.error("Audio player initialization function not found");
+        console.error("   ❌ Audio player initialization function not found");
     }
     
+    // Step 2: Set up fallback with multiple checks
+    setTimeout(function() {
+        console.log("🔍 Checking WaveSurfer initialization status...");
+        
+        // Check if main WaveSurfer is working
+        const mainWsReady = window.wavesurfer && 
+                           window.wavesurfer.getDuration && 
+                           window.wavesurfer.getDuration() > 0;
+                           
+        // Check if basic WaveSurfer is working                   
+        const basicWsReady = window.basicWaveSurfer && 
+                            window.basicWaveSurfer.getDuration && 
+                            window.basicWaveSurfer.getDuration() > 0;
+        
+        if (!mainWsReady && !basicWsReady) {
+            console.log("🔄 No WaveSurfer working, trying basic implementation...");
+            if (typeof window.initializeBasicWaveSurfer === 'function') {
+                try {
+                    const result = window.initializeBasicWaveSurfer();
+                    if (result) {
+                        console.log("✅ Basic WaveSurfer fallback successful!");
+                    } else {
+                        console.log("❌ Basic WaveSurfer fallback failed");
+                    }
+                } catch (error) {
+                    console.error("❌ Basic WaveSurfer error:", error);
+                }
+            } else {
+                console.error("❌ Basic WaveSurfer function not available");
+            }
+        } else if (mainWsReady) {
+            console.log("✅ Main WaveSurfer is working properly");
+        } else if (basicWsReady) {
+            console.log("✅ Basic WaveSurfer is working properly");
+        }
+    }, 2000);
+
+    // Step 3: Initialize transcript display
     if (typeof window.initializeTranscriptDisplay === 'function') {
         console.log("Initializing transcript display...");
         window.initializeTranscriptDisplay();
@@ -639,8 +714,11 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Set a timeout to check if everything loaded correctly
     setTimeout(function() {
-        // Check if WaveSurfer is initialized
-        if (!window.wavesurfer || !window.wavesurfer.isReady) {
+        // Check if WaveSurfer is initialized (v6 compatible check)
+        const wavesurferReady = (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) || 
+                               (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0);
+        
+        if (!wavesurferReady) {
             console.warn("WaveSurfer not properly initialized after timeout - showing run tests button");
             document.getElementById('runTestsBtn').classList.add('btn-warning');
             document.getElementById('runTestsBtn').classList.remove('btn-outline-primary');

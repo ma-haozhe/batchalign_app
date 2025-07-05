@@ -13,9 +13,120 @@ window.wavesurferInitializationAttempts = 0;
 // Global functions for waveform zooming
 window.currentZoomLevel = 1;
 
+// Global unified play/pause function (MAIN CONTROLLER)
+window.toggleGlobalPlayPause = function() {
+    console.log("🎵 Global play/pause function called");
+    
+    const playPauseBtn = document.getElementById('playPauseBtn');
+    const icon = playPauseBtn?.querySelector('i');
+    
+    // Priority 1: Try main WaveSurfer instance
+    if (window.wavesurfer && window.wavesurfer.getDuration && window.wavesurfer.getDuration() > 0) {
+        console.log("🎵 Using main WaveSurfer for playback control");
+        try {
+            if (window.wavesurfer.isPlaying()) {
+                window.wavesurfer.pause();
+                if (icon) {
+                    icon.classList.remove('bi-pause-fill');
+                    icon.classList.add('bi-play-fill');
+                }
+                console.log("⏸️ Main WaveSurfer paused");
+            } else {
+                window.wavesurfer.play();
+                if (icon) {
+                    icon.classList.remove('bi-play-fill');
+                    icon.classList.add('bi-pause-fill');
+                }
+                console.log("▶️ Main WaveSurfer playing");
+            }
+            return;
+        } catch (e) {
+            console.error("❌ Main WaveSurfer error:", e);
+        }
+    }
+    
+    // Priority 2: Try basic WaveSurfer instance
+    if (window.basicWaveSurfer && window.basicWaveSurfer.getDuration && window.basicWaveSurfer.getDuration() > 0) {
+        console.log("🎵 Using basic WaveSurfer for playback control");
+        try {
+            if (window.basicWaveSurfer.isPlaying()) {
+                window.basicWaveSurfer.pause();
+                if (icon) {
+                    icon.classList.remove('bi-pause-fill');
+                    icon.classList.add('bi-play-fill');
+                }
+                console.log("⏸️ Basic WaveSurfer paused");
+            } else {
+                window.basicWaveSurfer.play();
+                if (icon) {
+                    icon.classList.remove('bi-play-fill');
+                    icon.classList.add('bi-pause-fill');
+                }
+                console.log("▶️ Basic WaveSurfer playing");
+            }
+            return;
+        } catch (e) {
+            console.error("❌ Basic WaveSurfer error:", e);
+        }
+    }
+    
+    // Priority 3: Try HTML5 audio player
+    const player = document.getElementById('audioPlayer');
+    if (player && player.duration > 0) {
+        console.log("🎵 Using HTML5 audio for playback control");
+        try {
+            if (player.paused) {
+                player.play().then(() => {
+                    if (icon) {
+                        icon.classList.remove('bi-play-fill');
+                        icon.classList.add('bi-pause-fill');
+                    }
+                    console.log("▶️ HTML5 audio playing");
+                }).catch(err => {
+                    console.error("❌ HTML5 audio play error:", err);
+                });
+            } else {
+                player.pause();
+                if (icon) {
+                    icon.classList.remove('bi-pause-fill');
+                    icon.classList.add('bi-play-fill');
+                }
+                console.log("⏸️ HTML5 audio paused");
+            }
+            return;
+        } catch (e) {
+            console.error("❌ HTML5 audio error:", e);
+        }
+    }
+    
+    // No audio player available
+    console.warn("⚠️ No audio player available for playback control");
+    console.log("Available players:", {
+        mainWaveSurfer: !!window.wavesurfer,
+        basicWaveSurfer: !!window.basicWaveSurfer,
+        html5Audio: !!player
+    });
+};
+
+// Wait for WaveSurfer to be available before initializing
+window.waitForWaveSurfer = function(callback, maxAttempts = 10, attempt = 1) {
+    if (typeof WaveSurfer !== 'undefined') {
+        console.log("✅ WaveSurfer is available, proceeding with initialization");
+        callback();
+    } else if (attempt < maxAttempts) {
+        console.log(`⏳ Waiting for WaveSurfer... (attempt ${attempt}/${maxAttempts})`);
+        setTimeout(() => {
+            window.waitForWaveSurfer(callback, maxAttempts, attempt + 1);
+        }, 200); // Wait 200ms between attempts
+    } else {
+        console.error("❌ WaveSurfer failed to load after maximum attempts");
+        enableFallbackPlayer("WaveSurfer library failed to load");
+    }
+};
+
 // Initialize the audio player with all required controls
 window.initializeAudioPlayer = function() {
-    console.log("Initializing audio player with direct DOM bindings");
+    console.log("🎵 Initializing audio player with WaveSurfer check...");
     
     // Initialize the standard HTML5 audio player first
     if (!window.player) {
@@ -36,30 +147,27 @@ window.initializeAudioPlayer = function() {
     player.onended = handlePlayEnd;
     player.onerror = handlePlayError;
     
-    // Only proceed with WaveSurfer initialization if WaveSurfer is available
-    if (typeof WaveSurfer !== 'undefined') {
-        console.log("WaveSurfer is available, initializing visualization");
-        // Initialize WaveSurfer
+    // Wait for WaveSurfer to be available before proceeding
+    window.waitForWaveSurfer(function() {
+        console.log("🎵 WaveSurfer is ready, initializing visualization");
         initializeWaveSurfer();
-    } else {
-        console.error("WaveSurfer not available, using fallback audio player");
-        // Show fallback player with notice
-        enableFallbackPlayer("WaveSurfer library not available");
-        
-        // Try again after a delay, only if this is our first or second attempt
-        if (window.wavesurferInitializationAttempts < 2) {
+    });
+    
+    // Fallback check if WaveSurfer never loads
+    setTimeout(function() {
+        if (!window.wavesurfer && window.wavesurferInitializationAttempts < 2) {
             window.wavesurferInitializationAttempts++;
             console.log(`Scheduling retry attempt ${window.wavesurferInitializationAttempts} in 1 second`);
             setTimeout(function() {
                 console.log("Retrying WaveSurfer initialization...");
                 if (typeof WaveSurfer !== 'undefined') {
                     initializeWaveSurfer();
-            } else {
+                } else {
                     console.error("WaveSurfer still not available after retry");
                 }
             }, 1000);
         }
-    }
+    }, 2000); // Wait 2 seconds before fallback check
     
     // Bind control buttons regardless of WaveSurfer availability
     bindControlButtons();
@@ -126,32 +234,33 @@ function handlePlayError(e) {
 function bindControlButtons() {
     console.log("Binding audio control buttons");
     
-    // Set up the play/pause button
+    // Set up the unified play/pause button handler (MAIN CONTROLLER)
     const playPauseBtn = document.getElementById('playPauseBtn');
     if (playPauseBtn) {
-        playPauseBtn.addEventListener('click', function() {
-            if (window.wavesurfer && window.wavesurfer.isReady) {
-                if (window.wavesurfer.isPlaying()) {
-                    window.wavesurfer.pause();
-                    this.querySelector('i').classList.remove('bi-pause-fill');
-                    this.querySelector('i').classList.add('bi-play-fill');
-                } else {
-                    window.wavesurfer.play();
-                    this.querySelector('i').classList.remove('bi-play-fill');
-                    this.querySelector('i').classList.add('bi-pause-fill');
-                }
-            } else if (player) {
-                if (player.paused) {
-                    player.play();
-                    this.querySelector('i').classList.remove('bi-play-fill');
-                    this.querySelector('i').classList.add('bi-pause-fill');
-                } else {
-                    player.pause();
-                    this.querySelector('i').classList.remove('bi-pause-fill');
-                    this.querySelector('i').classList.add('bi-play-fill');
-                }
+        console.log("🎛️ Setting up unified play/pause button controller");
+        
+        // Clear any existing handlers to prevent conflicts
+        playPauseBtn.onclick = null;
+        const newBtn = playPauseBtn.cloneNode(true);
+        playPauseBtn.parentNode.replaceChild(newBtn, playPauseBtn);
+        
+        // Add our unified handler
+        newBtn.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            console.log("🎵 Unified play/pause button clicked");
+            
+            // Call the global play/pause function
+            if (typeof window.toggleGlobalPlayPause === 'function') {
+                window.toggleGlobalPlayPause();
+            } else {
+                console.error("❌ Global play/pause function not available");
             }
         });
+        
+        console.log("✅ Unified play/pause button handler installed");
+    } else {
+        console.error("❌ Play/pause button not found!");
     }
 
     // Bind all skip buttons
@@ -257,9 +366,9 @@ function initializeWaveSurfer() {
         // Log the full audio URL for debugging
         console.log("Creating WaveSurfer with audio URL:", audioUrl);
         
-        // Show a loading message
-        document.getElementById('waveform').innerHTML = `
-            <div class="text-center p-3">
+        // Show a loading message initially
+        waveformContainer.innerHTML = `
+            <div id="wavesurfer-loading" class="text-center p-3">
                 <div class="spinner-border spinner-border-sm text-primary" role="status">
                     <span class="visually-hidden">Loading audio visualization...</span>
                 </div>
@@ -267,10 +376,16 @@ function initializeWaveSurfer() {
             </div>
         `;
         
-        // Create WaveSurfer instance with more config options
+        // Create WaveSurfer instance with v6 compatible options
         try {
+            // Create a separate container for WaveSurfer that's initially hidden
+            const wavesurferDiv = document.createElement('div');
+            wavesurferDiv.id = 'wavesurfer-container';
+            wavesurferDiv.style.display = 'none'; // Hide until ready
+            waveformContainer.appendChild(wavesurferDiv);
+            
             window.wavesurfer = WaveSurfer.create({
-                container: '#waveform',
+                container: wavesurferDiv, // Use the separate container
                 waveColor: 'rgba(0, 123, 255, 0.3)',
                 progressColor: 'rgba(0, 123, 255, 0.8)',
                 cursorColor: '#dc3545',
@@ -282,11 +397,10 @@ function initializeWaveSurfer() {
                 hideScrollbar: true,
                 backend: 'MediaElement',  // Use MediaElement backend for better compatibility
                 mediaControls: false,     // We'll use our own controls
-                normalize: true,          // Normalize audio waveform
-                plugins: []
+                normalize: true           // Normalize audio waveform
             });
             
-            console.log("WaveSurfer instance created successfully");
+            console.log("WaveSurfer v6 instance created successfully");
         } catch (e) {
             console.error("Error creating WaveSurfer instance:", e);
             enableFallbackPlayer("Error creating audio visualization: " + e.message);
@@ -305,23 +419,64 @@ function initializeWaveSurfer() {
         
         // Set up WaveSurfer event listeners
         window.wavesurfer.on('ready', function() {
-            console.log('WaveSurfer is ready');
+            console.log('✅ WaveSurfer is ready');
+            
+            // Hide the loading message and show the waveform
+            const loadingDiv = document.getElementById('wavesurfer-loading');
+            const wavesurferDiv = document.getElementById('wavesurfer-container');
+            
+            if (loadingDiv) {
+                console.log('🧹 Hiding loading message');
+                loadingDiv.style.display = 'none';
+            }
+            
+            if (wavesurferDiv) {
+                console.log('🎨 Showing WaveSurfer visualization');
+                wavesurferDiv.style.display = 'block';
+            }
+            
             document.getElementById('totalTime').textContent = formatTime(window.wavesurfer.getDuration());
             
             // Sync playback rate with HTML5 audio element
             window.wavesurfer.setPlaybackRate(window.currentPlaybackRate);
             
             // Enable zoom controls
-            document.getElementById('zoomIn').disabled = false;
-            document.getElementById('zoomOut').disabled = false;
-            document.getElementById('resetZoom').disabled = false;
+            const zoomInBtn = document.getElementById('zoomIn');
+            const zoomOutBtn = document.getElementById('zoomOut');
+            const resetZoomBtn = document.getElementById('resetZoom');
             
-            // Draw waveform
-            window.wavesurfer.drawBuffer();
+            if (zoomInBtn) zoomInBtn.disabled = false;
+            if (zoomOutBtn) zoomOutBtn.disabled = false;
+            if (resetZoomBtn) resetZoomBtn.disabled = false;
             
             // Setup speaker timeline if available
             if (typeof window.setupSpeakerTimeline === 'function') {
+                console.log('🎤 Setting up speaker timeline');
                 window.setupSpeakerTimeline();
+            } else {
+                console.log('ℹ️ No speaker timeline function available');
+            }
+            
+            // Clear any loading timeout since we're now ready
+            if (window.wavesurferLoadingTimeout) {
+                clearTimeout(window.wavesurferLoadingTimeout);
+                window.wavesurferLoadingTimeout = null;
+            }
+        });
+        
+        window.wavesurfer.on('loading', function(progress) {
+            console.log('📊 WaveSurfer loading progress:', progress + '%');
+            const loadingDiv = document.getElementById('wavesurfer-loading');
+            if (loadingDiv) {
+                // Update loading message with progress
+                loadingDiv.innerHTML = `
+                    <div class="text-center p-3">
+                        <div class="spinner-border spinner-border-sm text-primary" role="status">
+                            <span class="visually-hidden">Loading audio visualization...</span>
+                        </div>
+                        <span class="ms-2">Loading audio visualization... ${progress}%</span>
+                    </div>
+                `;
             }
         });
         
@@ -344,22 +499,70 @@ function initializeWaveSurfer() {
         });
         
         window.wavesurfer.on('error', function(err) {
-            console.error('WaveSurfer error:', err);
-            enableFallbackPlayer();
+            console.error('❌ WaveSurfer error:', err);
+            
+            // Clear loading message and show error
+            const waveformDiv = document.getElementById('waveform');
+            if (waveformDiv) {
+                waveformDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> Could not load audio visualization. 
+                        Using fallback audio player. (${err})
+                    </div>
+                `;
+            }
+            
+            enableFallbackPlayer("WaveSurfer error: " + err);
+        });
+        
+        // Add load error handler
+        window.wavesurfer.on('load-error', function(err) {
+            console.error('❌ WaveSurfer load error:', err);
+            
+            // Clear loading message and show error
+            const waveformDiv = document.getElementById('waveform');
+            if (waveformDiv) {
+                waveformDiv.innerHTML = `
+                    <div class="alert alert-danger">
+                        <strong>Error:</strong> Could not load audio file for visualization. 
+                        Please check that the audio file is accessible.
+                    </div>
+                `;
+            }
+            
+            enableFallbackPlayer("Audio file load error: " + err);
         });
         
         // Disable zoom controls until audio is loaded
-        document.getElementById('zoomIn').disabled = true;
-        document.getElementById('zoomOut').disabled = true;
-        document.getElementById('resetZoom').disabled = true;
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const resetZoomBtn = document.getElementById('resetZoom');
+        
+        if (zoomInBtn) zoomInBtn.disabled = true;
+        if (zoomOutBtn) zoomOutBtn.disabled = true;
+        if (resetZoomBtn) resetZoomBtn.disabled = true;
         
         // Set a timeout to check if WaveSurfer loaded successfully
-        setTimeout(function() {
-            if (!window.wavesurfer.isReady) {
-                console.warn("WaveSurfer still not ready after 5 seconds - enabling fallback");
-                enableFallbackPlayer();
+        window.wavesurferLoadingTimeout = setTimeout(function() {
+            if (!window.wavesurfer || !window.wavesurfer.getDuration || window.wavesurfer.getDuration() === 0) {
+                console.warn("⚠️ WaveSurfer still not ready after 8 seconds - enabling fallback");
+                
+                // Clear loading message and show fallback
+                const waveformDiv = document.getElementById('waveform');
+                if (waveformDiv) {
+                    waveformDiv.innerHTML = `
+                        <div class="alert alert-warning">
+                            <strong>Note:</strong> Audio visualization is taking longer than expected. 
+                            Falling back to basic audio player.
+                        </div>
+                    `;
+                }
+                
+                enableFallbackPlayer("Audio visualization loading timeout (8 seconds)");
+            } else {
+                console.log("✅ WaveSurfer loaded successfully within timeout");
             }
-        }, 5000);
+        }, 8000); // Increased to 8 seconds for slower connections
     } catch (error) {
         console.error("Error initializing WaveSurfer:", error);
         enableFallbackPlayer(error.message);
@@ -368,6 +571,24 @@ function initializeWaveSurfer() {
 
 // Helper function to enable fallback player when WaveSurfer fails
 function enableFallbackPlayer(errorMessage = "Failed to initialize audio visualization") {
+    console.log("🔄 Enabling fallback player due to:", errorMessage);
+    
+    // First, try our basic WaveSurfer implementation before falling back to HTML5
+    if (typeof window.initializeBasicWaveSurfer === 'function') {
+        console.log("🧪 Trying basic WaveSurfer as fallback...");
+        const basicSuccess = window.initializeBasicWaveSurfer();
+        
+        if (basicSuccess) {
+            console.log("✅ Basic WaveSurfer fallback successful!");
+            return; // Success! No need to continue with HTML5 fallback
+        } else {
+            console.log("❌ Basic WaveSurfer fallback also failed, using HTML5 player");
+        }
+    } else {
+        console.log("⚠️ Basic WaveSurfer function not available, using HTML5 player");
+    }
+    
+    // If basic WaveSurfer failed, show error and use HTML5 player
     document.getElementById('waveform').innerHTML = `
         <div class="alert alert-warning">
             <strong>Notice:</strong> ${errorMessage}. Using standard audio player.

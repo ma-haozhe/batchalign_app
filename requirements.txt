@@ -1,6 +1,6 @@
 Django>=4.2.0
-# Using local batchalign2 in editable mode instead of batchalign>=0.1.0
--e ./batchalign2
+# Install batchalign2 directly from GitHub
+git+https://github.com/TalkBank/batchalign2.git
 pyannote.audio>=3.1.1
 torch>=2.0.0
 torchaudio>=2.0.0
